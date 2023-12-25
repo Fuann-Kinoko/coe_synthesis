@@ -12,7 +12,7 @@ module controller(
 	input flushE,
 	output memtoregE,alusrcE,
 	output regdstE,regwriteE,
-	output [2:0] alucontrolE,
+	output [4:0] alucontrolE,
 
 	//mem stage
 	output memtoregM,memwriteM,regwriteM,
@@ -24,7 +24,7 @@ module controller(
 
 	//decode stage
 	wire memtoregD,memwriteD,alusrcD,regdstD,regwriteD;
-	wire[2:0] alucontrolD;
+	wire[4:0] alucontrolD;
 	//execute stage
 	wire memwriteE;
 
@@ -33,7 +33,7 @@ module controller(
 	// [decode -> execute]
 	assign pcsrcD = branchD & equalD;
 	// 注意，这里存在flush可能性
-	floprc #(8) regE(
+	floprc #(10) regE(
 		clk, rst,
 		flushE,
 		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD},

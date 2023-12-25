@@ -31,14 +31,16 @@ module regfile(
 
 	reg [31:0] rf[31:0];
 
-	always @(negedge clk) begin
-		if (rst) begin
-			rf[wa3] <= 0;
+	integer i;
+	initial begin
+		for (i = 0; i < 32; i = i + 1) begin
+			rf[i] = 32'd00000000;
 		end
-		else begin
-			if(we3) begin
-				rf[wa3] <= wd3;
-			end
+	end
+
+	always @(negedge clk) begin
+		if(we3) begin
+			rf[wa3] <= wd3;
 		end
 	end
 
