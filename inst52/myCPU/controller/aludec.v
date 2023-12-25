@@ -20,6 +20,7 @@ module aludec(
             `BEQ: aluctrl = `ADD_CONTROL;
             `LUI: aluctrl = `OR_CONTROL;
             `ORI: aluctrl = `OR_CONTROL;
+            `ANDI: aluctrl = `AND_CONTROL;
             default: aluctrl = `AND_CONTROL;
         endcase
     end
