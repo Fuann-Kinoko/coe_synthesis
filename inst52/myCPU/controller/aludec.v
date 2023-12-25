@@ -15,11 +15,14 @@ module aludec(
                 `AND: aluctrl = `AND_CONTROL;
                 `OR:  aluctrl = `OR_CONTROL;
                 `SLT: aluctrl = `SLT_CONTROL;
+                `XOR: aluctrl = `XOR_CONTROL;
+                `NOR: aluctrl = `NOR_CONTROL;
             endcase
             `LW, `SW, `ADDI, `J: aluctrl = `ADD_CONTROL;
             `BEQ: aluctrl = `ADD_CONTROL;
             `LUI: aluctrl = `OR_CONTROL;
             `ORI: aluctrl = `OR_CONTROL;
+            `XORI: aluctrl = `XOR_CONTROL;
             `ANDI: aluctrl = `AND_CONTROL;
             default: aluctrl = `AND_CONTROL;
         endcase

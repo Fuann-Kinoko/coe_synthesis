@@ -10,7 +10,7 @@ module signext(
     always @(*) begin
         case(op)
             `LUI: a_ext = {a, {16{1'b0}}};
-            `ORI,`ANDI: a_ext = {{16{1'b0}}, a};
+            `ORI, `ANDI, `XORI: a_ext = {{16{1'b0}}, a};
             default: a_ext = { {16{a[15]}} ,a};
         endcase
     end
