@@ -17,6 +17,12 @@ module aludec(
                 `SLT: aluctrl = `SLT_CONTROL;
                 `XOR: aluctrl = `XOR_CONTROL;
                 `NOR: aluctrl = `NOR_CONTROL;
+                `SLL: aluctrl = `SLL_CONTROL;
+                `SRL: aluctrl = `SRL_CONTROL;
+                `SRA: aluctrl = `SRA_CONTROL;
+                `SLLV: aluctrl = `SLLV_CONTROL;
+                `SRLV: aluctrl = `SRLV_CONTROL;
+                `SRAV: aluctrl = `SRAV_CONTROL;
             endcase
             `LW, `SW, `ADDI, `J: aluctrl = `ADD_CONTROL;
             `BEQ: aluctrl = `ADD_CONTROL;
