@@ -6,10 +6,11 @@ module signext(
     input [15:0] a,
     output reg [31:0] a_ext
     );
-    // 符号扩展
+    // 数据扩展
     always @(*) begin
         case(op)
             `LUI: a_ext = {a, {16{1'b0}}};
+            `ORI: a_ext = {{16{1'b0}}, a};
             default: a_ext = { {16{a[15]}} ,a};
         endcase
     end
