@@ -15,7 +15,7 @@ module maindec(
     // regwrite
     always @(*) begin
         case(op)
-            `R_TYPE, `LW, `ADDI, `ANDI: regwrite = 1'b1;
+            `R_TYPE, `LW, `ADDI, `ANDI, `LUI: regwrite = 1'b1;
             default: regwrite = 1'b0;
         endcase
     end
@@ -29,7 +29,7 @@ module maindec(
     // alusrc
     always @(*) begin
         case(op)
-            `SW, `LW, `ADDI, `ANDI: alusrc = 1'b1;
+            `SW, `LW, `ADDI, `ANDI, `LUI: alusrc = 1'b1;
             default: alusrc = 1'b0;
         endcase
     end

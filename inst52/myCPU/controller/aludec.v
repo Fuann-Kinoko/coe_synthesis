@@ -24,6 +24,7 @@ module aludec(
             endcase
             `LW, `SW, `ADDI, `J: aluctrl = 3'b010;
             `BEQ: aluctrl = 3'b010;
+            `LUI: aluctrl = 3'b001;
             default: aluctrl = 3'b000;
         endcase
     end
