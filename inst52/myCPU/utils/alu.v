@@ -12,5 +12,6 @@ assign result = (op==`AND_CONTROL)?(num1&num2): // AND hhhh
                 (op==`ADD_CONTROL)?(num1+num2): // ADD
                 (op==`SUB_CONTROL)?(num1-num2): // SUB
                 (op==`SLT_CONTROL)?(num1<num2): // SLT
+                (op==`XOR_CONTROL)?(num1^num2): // XOR
                 32'hxxxx_xxxx;
 endmodule
