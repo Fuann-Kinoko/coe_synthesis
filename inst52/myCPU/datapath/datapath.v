@@ -25,7 +25,7 @@ module datapath(
 	input memtoregW,
 	input regwriteW
 );
-	
+
 	//fetch stage
 	wire stallF;
 	wire [31:0] pc_plus4F;
@@ -35,7 +35,7 @@ module datapath(
 	wire [31:0] pc_plus4D,instrD;
 	wire forwardaD,forwardbD;
 	wire [4:0] rsD,rtD,rdD;
-	wire stallD; 
+	wire stallD;
 	wire [31:0] signimmD,signimm_slD;
 	wire [31:0] srcaD,srca2D,srcbD,srcb2D;
 
@@ -62,7 +62,7 @@ module datapath(
 
 	// 有可能暂停的flip要带en
 	// 有可能flush的flip要带clear
-	
+
 	// [fetch -> decode]
 	// 暂存
 	flopenr r1D(clk,rst,~stallD,pc_plus4F,pc_plus4D);
@@ -114,7 +114,7 @@ module datapath(
 		//decode stage
 		.rsD(rsD),
 		.rtD(rtD),
-		.branchD(branchD), 
+		.branchD(branchD),
 		.forwardaD(forwardaD),
 		.forwardbD(forwardbD),
 		.stallD(stallD),
@@ -155,8 +155,8 @@ module datapath(
 	// [Fetch] PC + 4
 	adder adder_plus4(pcF,32'd4,pc_plus4F);
 
-	// [Decode] 符号扩展
-	signext SignExtend(instrD[15:0],signimmD);
+	// [Decode] 数据扩展
+	signext DataExtend(opD, instrD[15:0], signimmD);
 	// [Decode] 左移两位
 	sl2 immsh(signimmD,signimm_slD);
 	// [Decode] 计算branch的地址
@@ -181,7 +181,7 @@ module datapath(
 	// [Execute] 决定 write register 是 rt 还是 rd
 	mux2 #(5) mux_regdst(rtE,rdE,regdstE,writeregE);
     // [Execute] 针对寄存器堆，进行操作
-	regfile register(clk,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
+	regfile register(clk,rst,regwriteW,rsD,rtD,writeregW,resultW,srcaD,srcbD);
     // [Execute] 判断ALU收到的srcB是RD2还是SignImm
 	mux2 mux_ALUsrc(srcb2E,signimmE,alusrcE,srcb3E);
     // [Execute] ALU运算，控制冒险提前判断了branch，不再需要zero
