@@ -4,28 +4,23 @@
 module aludec(
     input [5:0] op,
     input [5:0] funct,
-    output reg [2:0] aluctrl
+    output reg [4:0] aluctrl
     );
-
-// 3'b000 -> (num1&num2): // AND
-// 3'b001 -> (num1|num2): // OR
-// 3'b010 -> (num1+num2): // ADD
-// 3'b110 -> (num1-num2): // SUB
-// 3'b111 -> (num1<num2): // SLT
 
     always @(*) begin
         case(op)
             `R_TYPE: case(funct)
-                `ADD: aluctrl = 3'b010;
-                `SUB: aluctrl = 3'b110;
-                `AND: aluctrl = 3'b000;
-                `OR:  aluctrl = 3'b001;
-                `SLT: aluctrl = 3'b111;
+                `ADD: aluctrl = `ADD_CONTROL;
+                `SUB: aluctrl = `SUB_CONTROL;
+                `AND: aluctrl = `AND_CONTROL;
+                `OR:  aluctrl = `OR_CONTROL;
+                `SLT: aluctrl = `SLT_CONTROL;
             endcase
-            `LW, `SW, `ADDI, `J: aluctrl = 3'b010;
-            `BEQ: aluctrl = 3'b010;
-            `LUI: aluctrl = 3'b001;
-            default: aluctrl = 3'b000;
+            `LW, `SW, `ADDI, `J: aluctrl = `ADD_CONTROL;
+            `BEQ: aluctrl = `ADD_CONTROL;
+            `LUI: aluctrl = `OR_CONTROL;
+            `ORI: aluctrl = `OR_CONTROL;
+            default: aluctrl = `AND_CONTROL;
         endcase
     end
 

@@ -8,11 +8,11 @@ module mips(
 	output memwriteM,
 	output [31:0] aluoutM,writedataM
 );
-	
+
 	wire [5:0] opD,functD;
 	wire regdstE,alusrcE,pcsrcD,memtoregE,memtoregM,memtoregW;
 	wire regwriteE,regwriteM,regwriteW;
-	wire [2:0] alucontrolE;
+	wire [4:0] alucontrolE;
 	wire flushE,equalD;
 
 	controller c(
@@ -31,7 +31,7 @@ module mips(
 		//				==input==
 		.flushE(flushE),
 			//output
-		.memtoregE(memtoregE), 		.alusrcE(alusrcE), 		
+		.memtoregE(memtoregE), 		.alusrcE(alusrcE),
 		.regdstE(regdstE), 			.regwriteE(regwriteE),
 		.alucontrolE(alucontrolE),
 		//[mem stage]
@@ -77,5 +77,5 @@ module mips(
 		.memtoregW(memtoregW), 		.regwriteW(regwriteW)
 		//				==output=
 	);
-	
+
 endmodule

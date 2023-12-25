@@ -14,7 +14,7 @@ module datapath(
 	input memtoregE,
 	input alusrcE,regdstE,
 	input regwriteE,
-	input [2:0] alucontrolE,
+	input [4:0] alucontrolE,
 	output flushE,
 	//mem stage
 	input memtoregM,
