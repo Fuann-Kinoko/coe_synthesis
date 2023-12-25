@@ -16,6 +16,7 @@ module aludec(
                 `OR:  aluctrl = `OR_CONTROL;
                 `SLT: aluctrl = `SLT_CONTROL;
                 `XOR: aluctrl = `XOR_CONTROL;
+                `NOR: aluctrl = `NOR_CONTROL;
             endcase
             `LW, `SW, `ADDI, `J: aluctrl = `ADD_CONTROL;
             `BEQ: aluctrl = `ADD_CONTROL;
