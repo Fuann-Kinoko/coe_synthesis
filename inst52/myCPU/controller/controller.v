@@ -14,6 +14,7 @@ module controller(
 	output regdstE,regwriteE,
 	output [4:0] alucontrolE,
 
+
 	//mem stage
 	output memtoregM,memwriteM,regwriteM,
 
