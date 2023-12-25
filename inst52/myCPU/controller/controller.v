@@ -3,27 +3,26 @@
 
 module controller(
 	input clk,rst,
-	
+
 	//decode stage
 	input [5:0] opD,functD,equalD,
 	output pcsrcD,branchD,jumpD,
-	
+
 	//execute stage
 	input flushE,
 	output memtoregE,alusrcE,
-	output regdstE,regwriteE,	
+	output regdstE,regwriteE,
 	output [2:0] alucontrolE,
 
 	//mem stage
 	output memtoregM,memwriteM,regwriteM,
-	
+
 	//write back stage
 	output memtoregW,regwriteW
 
 );
 
 	//decode stage
-	wire[1:0] aluopD;
 	wire memtoregD,memwriteD,alusrcD,regdstD,regwriteD;
 	wire[2:0] alucontrolD;
 	//execute stage
@@ -69,13 +68,12 @@ module controller(
         .branch(branchD),
         .memWrite(memwriteD),
         .memToReg(memtoregD),
-        .jump(jumpD),
-        .aluop(aluopD)
+        .jump(jumpD)
         //output
 	);
 
 	aludec control_aludec(
-		.aluop(aluopD),
+		.op(opD),
         .funct(functD),
         //input
         .aluctrl(alucontrolD)
