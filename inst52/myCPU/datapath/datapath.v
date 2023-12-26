@@ -38,6 +38,7 @@ module datapath(
 	wire stallD;
 	wire [31:0] signimmD,signimm_slD;
 	wire [31:0] srcaD,srca2D,srcbD,srcb2D;
+    wire [4:0] saD;
 
 	//execute stage
 	wire [1:0] forwardaE,forwardbE;
@@ -46,6 +47,7 @@ module datapath(
 	wire [31:0] signimmE;
 	wire [31:0] srcaE,srca2E,srcbE,srcb2E,srcb3E;
 	wire [31:0] aluoutE;
+    wire [4:0] saE;
 
 	//mem stage
 	wire [4:0] writeregM;
@@ -77,6 +79,7 @@ module datapath(
 	assign rsD = instrD[25:21];
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
+    assign saD = instrD[10:6];
 	// 提前在decode判断branch
 	assign equalD = (srca2D == srcb2D)?1'b1:1'b0;
 
@@ -88,6 +91,7 @@ module datapath(
 	floprc #(5) r4E(clk,rst,flushE,rsD,rsE); // 如果只有暂存，rsD没必要推过去，但rsE对hazard前推有用
 	floprc #(5) r5E(clk,rst,flushE,rtD,rtE);
 	floprc #(5) r6E(clk,rst,flushE,rdD,rdE);
+    floprc #(5) r7E(clk,rst,flushE,saD,saE);
 	// 前推
 	mux3 forwardaemux(srcaE,resultW,aluoutM,forwardaE,srca2E);
 	mux3 forwardbemux(srcbE,resultW,aluoutM,forwardbE,srcb2E);
@@ -185,7 +189,7 @@ module datapath(
     // [Execute] 判断ALU收到的srcB是RD2还是SignImm
 	mux2 mux_ALUsrc(srcb2E,signimmE,alusrcE,srcb3E);
     // [Execute] ALU运算，控制冒险提前判断了branch，不再需要zero
-	alu alu(srca2E,srcb3E,alucontrolE,aluoutE);
+	alu alu(srca2E,srcb3E,saE,alucontrolE,aluoutE);
 
     // [WriteBack] 判断写回寄存器堆的是：ALU的计算结果 or 从数据存储器读取的data
 	mux2 mux_regwriteData(aluoutW,readdataW,memtoregW,resultW);

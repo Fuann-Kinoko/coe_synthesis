@@ -10,13 +10,22 @@ module aludec(
     always @(*) begin
         case(op)
             `R_TYPE: case(funct)
+                // 算术运算
                 `ADD: aluctrl = `ADD_CONTROL;
                 `SUB: aluctrl = `SUB_CONTROL;
+                // 逻辑运算
                 `AND: aluctrl = `AND_CONTROL;
                 `OR:  aluctrl = `OR_CONTROL;
                 `SLT: aluctrl = `SLT_CONTROL;
                 `XOR: aluctrl = `XOR_CONTROL;
                 `NOR: aluctrl = `NOR_CONTROL;
+                // 位移运算
+                `SLL: aluctrl = `SLL_CONTROL;
+                `SRL: aluctrl = `SRL_CONTROL;
+                `SRA: aluctrl = `SRA_CONTROL;
+                `SLLV: aluctrl = `SLLV_CONTROL;
+                `SRLV: aluctrl = `SRLV_CONTROL;
+                `SRAV: aluctrl = `SRAV_CONTROL;
             endcase
             `LW, `SW, `ADDI, `J: aluctrl = `ADD_CONTROL;
             `BEQ: aluctrl = `ADD_CONTROL;
