@@ -6,9 +6,10 @@ module hazard(
 
 	//decode stage
 	input [4:0] rsD,rtD,
-	input branchD,
+	input branchD,jrD,
 	output forwardaD,forwardbD,
 	output stallD,
+	output jrstall_READ,
 
 	//execute stage
 	input [4:0] rsE,rtE,
@@ -28,9 +29,9 @@ module hazard(
 	input regwriteW
 );
 
-	wire lwstallD,branchstallD;
+	wire lwstallD,branchstallD,jrstall_WRITE;
 
-	
+
 	// [数据冒险]
 	// 			-> 前推
 	// 读的不是$zero & M/W阶段的寄存器号与需要前推的E阶段寄存器号对的上 & 写使能开着，确实还没写入
@@ -42,6 +43,8 @@ module hazard(
 						2'b00;
 
 	// 			-> 暂停
+	// 假设当前指令是lw，下一条指令刚好需要lw写入的寄存器。当下一条指令执行至EXE阶段时，当前指令
+	// 才到MEM阶段，而直至WB阶段才能从内存拿到写入寄存器的值。因而，无奈之举便是暂停下一条指令
 	assign lwstallD = memtoregE & (rtE == rsD | rtE == rtD);
 	/*
 	assign stallD = lwstallD;
@@ -56,11 +59,27 @@ module hazard(
 	assign forwardaD = (rsD != 0 & rsD == writeregM & regwriteM);
 	assign forwardbD = (rtD != 0 & rtD == writeregM & regwriteM);
 	// 			-> 暂停
-	// 当前为branch & 上一条确实要写入 & E/M 目前的寄存器号与上一条的M/W阶段寄存器号对的上
+	// branch指令，如BEQ，需要在DECODE查看rt和rs寄存器。如果是上上一条指令有冒险，可以在从MEM阶段前推过来
+	// 但如果是上一条指令有冒险，上一条刚在EXE阶段，得不到Aluout，不能前推，因此要暂停当前指令的DECODE阶段
+	// 判断条件：当前为branch & 上一条确实要写入寄存器，但没来得及 & E/M 目前的寄存器号与上一条的M/W阶段寄存器号对的上
+	// branchstallD 可以涵盖：BEQ，BNE，BGEZ，BGTZ，BLEZ，BLTZ
+	// 因为在DATAPATH设计中，writeregE可能被覆盖为31号，所以对于BGEZAL和BLTZAL也不用多写判断了
 	assign branchstallD = 	(branchD & regwriteE & (writeregE == rsD | writeregE == rtD)) |
 							(branchD & memtoregM & (writeregM == rsD | writeregM == rtD));
-	assign stallD = lwstallD | branchstallD;
-	assign stallF = lwstallD | branchstallD;
-	assign flushE = lwstallD | branchstallD;
+
+	// 同理，对于JR和JALR，因为它们要在DECODE阶段读rs的值，因此也要判断暂停DECODE阶段
+	assign jrstall_READ = jrD & memtoregM & (writeregE == rsD);
+
+
+	// 虽然名字是jrstall，但其实对JR指令不会产生，而是对JALR，因为其会将当前PC+8写回rd寄存器，
+	// 因此可能产生RAW冒险，需要先暂停
+	assign jrstall_WRITE = jrD && regwriteE && (writeregE == rsD);
+
+
+	// [汇总后产生的stall信号]
+
+	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE;
+	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE;
+	assign flushE = lwstallD | branchstallD | jrstall_READ;
 
 endmodule

@@ -10,10 +10,11 @@ module mips(
 );
 
 	wire [5:0] opD,functD;
-	wire regdstE,alusrcE,pcsrcD,memtoregE,memtoregM,memtoregW;
-	wire regwriteE,regwriteM,regwriteW;
+	wire [4:0] rsD,rtD;
+	wire regdstE,alusrcE,branchD,jalD,jrD,pcsrcD,memtoregE,memtoregM,memtoregW;
+	wire balE,jalE,jrE,regwriteE,regwriteM,regwriteW;
 	wire [4:0] alucontrolE;
-	wire flushE,equalD;
+	wire flushE,validBranchConditionD;
 
 	controller c(
 		.clk(clk), .rst(rst),
@@ -22,18 +23,21 @@ module mips(
 		//				==output=
 		//[decode stage]
 		//				==input==
-		.opD(opD), 					.functD(functD),
-		.equalD(equalD),
+		.opD(opD), 					.rsD(rsD),
+		.rtD(rtD), 					.functD(functD),
+		.validBranchConditionD(validBranchConditionD),
 		//				==output=
 		.pcsrcD(pcsrcD),			.branchD(branchD),
-		.jumpD(jumpD),
+		.jumpD(jumpD),				.jalD(jalD),
+		.jrD(jrD),
 		//[execute stage]
 		//				==input==
 		.flushE(flushE),
 			//output
 		.memtoregE(memtoregE), 		.alusrcE(alusrcE),
 		.regdstE(regdstE), 			.regwriteE(regwriteE),
-		.alucontrolE(alucontrolE),
+		.alucontrolE(alucontrolE), 	.balE(balE),
+		.jalE(jalE),				.jrE(jrE),
 		//[mem stage]
 		//				==input==
 		//				==output=
@@ -55,15 +59,18 @@ module mips(
 		//[decode stage]
 		//				==input==
 		.pcsrcD(pcsrcD),			.branchD(branchD),
-		.jumpD(jumpD),
+		.jumpD(jumpD),				.jalD(jalD),
+		.jrD(jrD),					.jrE(jrE),
 		//				==output=
-		.equalD(equalD), 			.opD(opD),
+		.validBranchConditionD(validBranchConditionD), 			.opD(opD),
+		.rsD(rsD),				.rtD(rtD),
 		.functD(functD),
 		//[execute stage]
 		//				==input==
 		.memtoregE(memtoregE),		.alusrcE(alusrcE),
 		.regdstE(regdstE), 			.regwriteE(regwriteE),
-		.alucontrolE(alucontrolE),
+		.alucontrolE(alucontrolE), 	.balE(balE),
+		.jalE(jalE),
 		//				==output=
 		.flushE(flushE),
 		//[mem stage]

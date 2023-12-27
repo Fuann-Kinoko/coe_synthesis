@@ -48,14 +48,14 @@
 `define SRAV 		6'b000111
 
 `define MFHI  		6'b010000
-`define MTHI  		6'b010001  
+`define MTHI  		6'b010001
 `define MFLO  		6'b010010
 `define MTLO  		6'b010011
 
 `define SLT  6'b101010
 `define SLTU  6'b101011
 `define SLTI  6'b001010
-`define SLTIU  6'b001011   
+`define SLTIU  6'b001011
 `define ADD  6'b100000
 `define ADDU  6'b100001
 `define SUB  6'b100010
@@ -92,12 +92,13 @@
 
 `define SYSCALL 6'b001100
 `define BREAK 6'b001101
-   
+
 `define ERET 5'b10000
 
 `define R_TYPE 6'b000000
 `define REGIMM_INST 6'b000001
 `define SPECIAL3_INST 6'b010000
+`define BG_EXT_INST 6'b000001
 //change the SPECIAL2_INST from 6'b011100 to 6'b010000
 `define MTC0 5'b00100
 `define MFC0 5'b00000
@@ -184,11 +185,11 @@
 `define DivStop 1'b0
 
 //CP0
-`define CP0_REG_BADVADDR    5'b01000       
-`define CP0_REG_COUNT    5'b01001        
-`define CP0_REG_COMPARE    5'b01011      
-`define CP0_REG_STATUS    5'b01100       
-`define CP0_REG_CAUSE    5'b01101       
-`define CP0_REG_EPC    5'b01110          
-`define CP0_REG_PRID    5'b01111         
-`define CP0_REG_CONFIG    5'b10000       
+`define CP0_REG_BADVADDR    5'b01000
+`define CP0_REG_COUNT    5'b01001
+`define CP0_REG_COMPARE    5'b01011
+`define CP0_REG_STATUS    5'b01100
+`define CP0_REG_CAUSE    5'b01101
+`define CP0_REG_EPC    5'b01110
+`define CP0_REG_PRID    5'b01111
+`define CP0_REG_CONFIG    5'b10000
