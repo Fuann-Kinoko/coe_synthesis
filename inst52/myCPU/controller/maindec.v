@@ -19,7 +19,11 @@ module maindec(
     output reg jr,
     output reg memWrite,
     output reg memToReg,
-    output reg jump
+    output reg jump,
+    output reg hilowrite,
+    output reg hilodst,
+    output reg hiloToReg,
+    output reg hilosrc
     );
 
     // regwrite
@@ -130,9 +134,47 @@ module maindec(
             default: begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_OFF; end
         endcase
     end
-    // jr
 
-    // jal
+    // hilowrite - 是否要写hilo_reg
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                `MTHI,`MTLO:    hilowrite = `SET_ON;
+                default:        hilowrite = `SET_OFF;
+            endcase
+            default:            hilowrite = `SET_OFF;
+        endcase
+    end
+    // hilodst - 写HI or LO
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                `MTHI:          hilodst =   `SET_ON;
+                default:        hilodst =   `SET_OFF;
+            endcase
+            default:            hilowrite = `SET_OFF;
+        endcase
+    end
+    // hiloToReg - 是否将HI/LO的值写入rd
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                `MFHI,`MFLO:    hiloToReg = `SET_ON;
+                default:        hiloToReg = `SET_OFF;
+            endcase
+            default:            hiloToReg = `SET_OFF;
+        endcase
+    end
+    // hilosrc - 写入rd的值是来自于HI还是LO
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                `MFHI:          hilosrc = `SET_ON;
+                default:        hilosrc = `SET_OFF;
+            endcase
+            default:            hilosrc = `SET_OFF;
+        endcase
+    end
 
     // //顺序按表5
     // always@(*)begin
