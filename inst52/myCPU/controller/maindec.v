@@ -2,20 +2,28 @@
 `timescale 1ns / 1ps
 
 module maindec(
-    input [5:0] op,
+    input [5:0] op,funct,
     output reg regwrite,
     output reg regdst,
     output reg alusrc,
     output reg branch,
     output reg memWrite,
     output reg memToReg,
-    output reg jump
+    output reg jump,
+    output reg hilowrite,
+    output reg hilodst,
+    output reg hiloToReg,
+    output reg hilosrc
     );
 
     // regwrite
     always @(*) begin
         case(op)
-            `R_TYPE, `LW,
+            `R_TYPE:case(funct)
+                        `MTHI,`MTLO: regwrite = 1'b0;
+                        default: regwrite = 1'b1;
+                    endcase
+            `LW,
             `ADDI, `ANDI, `LUI, `ORI, `ANDI, `XORI: regwrite = 1'b1;
             default: regwrite = 1'b0;
         endcase
@@ -61,6 +69,46 @@ module maindec(
         case(op)
             `J: jump = 1'b1;
             default: jump = 1'b0;
+        endcase
+    end
+    // hilowrite - 是否要写hilo_reg
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                 `MTHI,`MTLO: hilowrite = 1'b1;
+                 default: hilowrite = 1'b0;
+                endcase
+            default: hilowrite = 1'b0;
+        endcase
+    end
+    // hilodst - 写HI or LO
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                 `MTHI: hilodst = 1'b1;
+                 default: hilodst = 1'b0;
+                endcase
+            default: hilowrite = 1'b0;
+        endcase
+    end
+    // hiloToReg - 是否将HI/LO的值写入rd
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                 `MFHI,`MFLO: hiloToReg = 1'b1;
+                 default: hiloToReg = 1'b0;
+                endcase
+            default: hiloToReg = 1'b0;
+        endcase
+    end
+    // hilosrc - 写入rd的值是来自于HI还是LO
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                 `MFHI: hilosrc = 1'b1;
+                 default: hilosrc = 1'b0;
+                endcase
+            default: hilosrc = 1'b0;
         endcase
     end
 

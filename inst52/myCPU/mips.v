@@ -5,7 +5,7 @@ module mips(
 	input [31:0] instrF,
 	input [31:0] readdataM,
 	output [31:0] pcF,
-	output memwriteM,
+	output memwriteM,hilowriteM,hilosrcM,
 	output [31:0] aluoutM,writedataM
 );
 
@@ -14,6 +14,9 @@ module mips(
 	wire regwriteE,regwriteM,regwriteW;
 	wire [4:0] alucontrolE;
 	wire flushE,equalD;
+    wire hilodstE;
+    wire hilotoregE;
+    wire hilotoregM,hilotoregW;
 
 	controller c(
 		.clk(clk), .rst(rst),
@@ -34,15 +37,20 @@ module mips(
 		.memtoregE(memtoregE), 		.alusrcE(alusrcE),
 		.regdstE(regdstE), 			.regwriteE(regwriteE),
 		.alucontrolE(alucontrolE),
+        .hilodstE(hilodstE),
+        .hilotoregE(hilotoregE),
 		//[mem stage]
 		//				==input==
 		//				==output=
 		.memtoregM(memtoregM),		.memwriteM(memwriteM),
 		.regwriteM(regwriteM),
+        .hilotoregM(hilotoregM),    .hilowriteM(hilowriteM),
+        .hilosrcM(hilosrcM),
 		//[writeBack stage]
 		//				==input==
 		//				==output=
-		.memtoregW(memtoregW),		.regwriteW(regwriteW)
+		.memtoregW(memtoregW),		.regwriteW(regwriteW),
+        .hilotoregW(hilotoregW)
 	);
 
 	datapath dp(
@@ -64,17 +72,22 @@ module mips(
 		.memtoregE(memtoregE),		.alusrcE(alusrcE),
 		.regdstE(regdstE), 			.regwriteE(regwriteE),
 		.alucontrolE(alucontrolE),
+        .hilodstE(hilodstE),
+        .hilotoregE(hilotoregE),
 		//				==output=
 		.flushE(flushE),
 		//[mem stage]
 		//				==input==
 		.memtoregM(memtoregM), 		.regwriteM(regwriteM),
 		.readdataM(readdataM),
+        .hilowriteM(hilowriteM),
+        .hilotoregM(hilotoregM),    .hilosrcM(hilosrcM),
 		//				==output=
 		.aluoutM(aluoutM),			.writedataM(writedataM),
 		//[writeBack stage]
 		//				==input==
-		.memtoregW(memtoregW), 		.regwriteW(regwriteW)
+		.memtoregW(memtoregW), 		.regwriteW(regwriteW),
+        .hilotoregW(hilotoregW)
 		//				==output=
 	);
 

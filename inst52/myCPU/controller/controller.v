@@ -13,46 +13,48 @@ module controller(
 	output memtoregE,alusrcE,
 	output regdstE,regwriteE,
 	output [4:0] alucontrolE,
+    output hilodstE,
+    output hilotoregE,
 
 
 	//mem stage
-	output memtoregM,memwriteM,regwriteM,
+	output memtoregM,memwriteM,regwriteM,hilowriteM,hilotoregM,hilosrcM,
 
 	//write back stage
-	output memtoregW,regwriteW
+	output memtoregW,regwriteW,hilotoregW
 
 );
 
 	//decode stage
-	wire memtoregD,memwriteD,alusrcD,regdstD,regwriteD;
+	wire memtoregD,memwriteD,alusrcD,regdstD,regwriteD,hilodstD,hilowriteD,hilotoregD,hilosrcD;
 	wire[4:0] alucontrolD;
 	//execute stage
-	wire memwriteE;
+	wire memwriteE,hilowriteE,hilosrcE;
 
 	// 用不到的，就继续传
 
 	// [decode -> execute]
 	assign pcsrcD = branchD & equalD;
 	// 注意，这里存在flush可能性
-	floprc #(10) regE(
+	floprc #(14) regE(
 		clk, rst,
 		flushE,
-		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD},
-		{memtoregE,memwriteE,alusrcE,regdstE,regwriteE,alucontrolE}
+		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD,hilodstD,hilowriteD,hilotoregD,hilosrcD},
+		{memtoregE,memwriteE,alusrcE,regdstE,regwriteE,alucontrolE,hilodstE,hilowriteE,hilotoregE,hilosrcE}
 	);
 
 	// [execute -> mem]
-	flopr #(3) regM(
+	flopr #(6) regM(
 		clk,rst,
-		{memtoregE,memwriteE,regwriteE},
-		{memtoregM,memwriteM,regwriteM}
+		{memtoregE,memwriteE,regwriteE,hilowriteE,hilotoregE,hilosrcE},
+		{memtoregM,memwriteM,regwriteM,hilowriteM,hilotoregM,hilosrcM}
 	);
 
 	// [mem -> writeBack]
-	flopr #(2) regW(
+	flopr #(3) regW(
 		clk,rst,
-		{memtoregM,regwriteM},
-		{memtoregW,regwriteW}
+		{memtoregM,regwriteM,hilotoregM},
+		{memtoregW,regwriteW,hilotoregW}
 	);
 
 	// =============================================================
@@ -62,6 +64,7 @@ module controller(
 
 	maindec control_maindec(
 		.op(opD),
+        .funct(functD),
 		//input
         .regwrite(regwriteD),
         .regdst(regdstD),
@@ -69,7 +72,11 @@ module controller(
         .branch(branchD),
         .memWrite(memwriteD),
         .memToReg(memtoregD),
-        .jump(jumpD)
+        .jump(jumpD),
+        .hilowrite(hilowriteD),
+        .hilodst(hilodstD),
+        .hiloToReg(hilotoregD),
+        .hilosrc(hilosrcD)
         //output
 	);
 
