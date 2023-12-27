@@ -6,14 +6,17 @@
 
 module maindec(
     input [5:0] op,
-    input [5:0] rs,
-    input [5:0] rt,
+    input [4:0] rs,
+    input [4:0] rt,
+    input [4:0] rd,
+    input [5:0] funct,
     output reg regwrite,
     output reg regdst,
     output reg alusrc,
     output reg branch,
     output reg bal,
     output reg jal,
+    output reg jr,
     output reg memWrite,
     output reg memToReg,
     output reg jump
@@ -22,13 +25,40 @@ module maindec(
     // regwrite
     always @(*) begin
         case(op)
-            `R_TYPE, `LW,
-            `INST_SET_IMMEDIATE: regwrite = `regwrite_ON;
-            `INST_SET_BRANCH: begin
-                regwrite = (rt == `BGEZAL || rt == `BLTZAL) ? `regwrite_ON : `regwrite_OFF;
+            `R_TYPE: begin
+                case(funct)
+                    `ADD,       `ADDU,
+                    `SUB,       `SUBU,
+                    `SLT,       `SLTU,
+                    `AND,       `NOR,
+                    `OR,        `XOR,
+                    `SLLV,      `SLL,
+                    `SRAV,      `SRA,
+                    `SRLV,      `SRL,
+                    `JALR,      `MFHI,
+                    `MFLO:      regwrite = `SET_ON;
+                    default:    regwrite = `SET_OFF;
+                endcase
             end
-            `JAL: regwrite = `regwrite_ON;
-            default: regwrite = `regwrite_OFF;
+
+            `ADDI,      `ADDIU,
+            `ADDIU,     `SLTI,
+            `SLTIU,     `ANDI,
+            `LUI,       `ORI,
+            `XORI,      `BNE:   regwrite = `SET_ON;
+
+            `BG_EXT_INST: begin
+                case(rt)
+                    `BGEZAL,    `BLTZAL:    regwrite = `SET_ON;
+                    default:                regwrite = `SET_OFF;
+                endcase
+            end
+
+            `JAL,       `LB,
+            `LBU,       `LH,
+            `LHU,       `LW:    regwrite = `SET_ON;
+
+            default:            regwrite = `SET_OFF;
         endcase
     end
     // regdst
@@ -41,55 +71,68 @@ module maindec(
     // alusrc
     always @(*) begin
         case(op)
-            `SW, `LW,
-            `INST_SET_IMMEDIATE: alusrc = `alusrc_IMM;
-            default: alusrc = `alusrc_RD;
+            `ADDI,      `ADDIU,
+            `SLTI,      `SLTIU,
+            `ANDI,      `LUI,
+            `ORI,       `XORI,
+            `LB,        `LBU,
+            `LH,        `LHU,
+            `LW,        `SB,
+            `SH,        `SW:    alusrc = `alusrc_IMM;
+            default:            alusrc = `alusrc_RD;
         endcase
     end
     // branch & bal
     always @(*) begin
         case(op)
-            `INST_SET_BRANCH: begin
-                branch = `branch_ON;
-                bal = (rt == `BGEZAL || rt == `BLTZAL) ? `bal_ON : `bal_OFF;
+            `BEQ,       `BNE,
+            `BGTZ,      `BLEZ:          begin branch = `SET_ON; bal = `SET_OFF; end
+
+            `BG_EXT_INST: begin
+                case(rt)
+                `BGEZ,      `BLTZ:      begin branch = `SET_ON; bal = `SET_OFF; end
+                `BGEZAL,    `BLTZAL:    begin branch = `SET_ON; bal = `SET_ON; end
+                default:                begin branch = `SET_OFF; bal = `SET_OFF; end
+                endcase
             end
-            default: begin
-                branch = `branch_OFF;
-                bal = `bal_OFF;
-            end
+            default:                    begin branch = `SET_OFF; bal = `SET_OFF; end
         endcase
     end
     // memWrite
     always @(*) begin
         case(op)
-            `SW: memWrite = `memWrite_ON;
-            default: memWrite = `memWrite_OFF;
+            `SW,        `SB,
+            `SH:            memWrite = `SET_ON;
+            default:        memWrite = `SET_OFF;
         endcase
     end
     // memToReg
     always @(*) begin
         case(op)
-            `LW: memToReg = `memToReg_MEM;
-            default: memToReg = `memToReg_ALU;
+            `LW,        `LB,
+            `LBU,       `LH,
+            `LHU:           memToReg = `memToReg_MEM;
+            default:        memToReg = `memToReg_ALU;
         endcase
     end
-    // jump
+    // jump && jal && jr
     always @(*) begin
         case(op)
-            `J: begin
-                jump = `jump_ON;
-                jal = `jal_OFF;
+            `J:     begin jump = `SET_ON; jal = `SET_OFF; jr = `SET_OFF; end
+            `JAL:   begin jump = `SET_ON; jal = `SET_ON; jr = `SET_OFF; end
+            `R_TYPE: begin
+                case(funct)
+                    `JR:        begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_ON; end
+                    `JALR :     begin jump = `SET_OFF; jal = `SET_ON; jr = `SET_ON; end
+                    default:    begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_OFF; end
+                endcase
             end
-            `JAL: begin
-                jump = `jump_ON;
-                jal = `jal_ON;
-            end
-            default: begin
-                jump = `jump_OFF;
-                jal = `jal_OFF;
-            end
+            default: begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_OFF; end
         endcase
     end
+    // jr
+
+    // jal
 
     // //顺序按表5
     // always@(*)begin

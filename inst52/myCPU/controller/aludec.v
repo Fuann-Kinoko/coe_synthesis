@@ -31,6 +31,8 @@ module aludec(
                 `SLLV: aluctrl = `SLLV_CONTROL;
                 `SRLV: aluctrl = `SRLV_CONTROL;
                 `SRAV: aluctrl = `SRAV_CONTROL;
+                // ...
+                default: aluctrl = `ADD_CONTROL;
             endcase
             `LW, `SW: aluctrl = `ADD_CONTROL;
             `J, `JAL: aluctrl = `ADD_CONTROL; // TODO: 我假设这些指令都用不到ALU，之后试着替换成`USELESS_CONTROL看看
