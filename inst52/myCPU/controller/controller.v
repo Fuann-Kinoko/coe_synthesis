@@ -15,6 +15,7 @@ module controller(
 	output [4:0] alucontrolE,
     output hilodstE,
     output hilotoregE,
+    output hilosrcE,
 
 
 	//mem stage
@@ -29,7 +30,7 @@ module controller(
 	wire memtoregD,memwriteD,alusrcD,regdstD,regwriteD,hilodstD,hilowriteD,hilotoregD,hilosrcD;
 	wire[4:0] alucontrolD;
 	//execute stage
-	wire memwriteE,hilowriteE,hilosrcE;
+	wire memwriteE,hilowriteE;
 
 	// 用不到的，就继续传
 

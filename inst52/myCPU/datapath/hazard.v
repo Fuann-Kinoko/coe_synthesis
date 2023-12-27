@@ -15,13 +15,16 @@ module hazard(
 	input [4:0] writeregE,
 	input regwriteE,
 	input memtoregE,
+    input hilotoregE,hilosrcE,
 	output [1:0] forwardaE,forwardbE,
 	output flushE,
+    output forwardHIE,forwardLOE,
 
 	//mem stage
 	input [4:0] writeregM,
 	input regwriteM,
 	input memtoregM,
+    input writehiloM,hilowriteM,
 
 	//write back stage
 	input [4:0] writeregW,
@@ -40,6 +43,10 @@ module hazard(
 	assign forwardbE = 	((rtE!=0) & (rtE == writeregM & regwriteM)) ? 2'b10:
 						((rtE!=0) & (rtE == writeregW & regwriteW)) ? 2'b01:
 						2'b00;
+    // 针对数据移动指令（MF、MT）的数据前推
+    // E阶段需要读hilo_reg & M阶段hilo_reg需要写的寄存器号与需要前推的E阶段hilo_reg需要读的寄存器号相同 & M阶段hilo_reg的写使能有效
+    assign forwardHIE = ((hilotoregE) & (hilosrcE == writehiloM) & (hilowriteM)) ? 1'b1 : 1'b0;
+    assign forwardLOE = ((hilotoregE) & (hilosrcE == writehiloM) & (hilowriteM)) ? 1'b1 : 1'b0;      
 
 	// 			-> 暂停
 	assign lwstallD = memtoregE & (rtE == rsD | rtE == rtD);

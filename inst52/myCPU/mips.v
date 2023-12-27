@@ -17,6 +17,7 @@ module mips(
     wire hilodstE;
     wire hilotoregE;
     wire hilotoregM,hilotoregW;
+    wire hilosrcE;
 
 	controller c(
 		.clk(clk), .rst(rst),
@@ -39,6 +40,7 @@ module mips(
 		.alucontrolE(alucontrolE),
         .hilodstE(hilodstE),
         .hilotoregE(hilotoregE),
+        .hilosrcE(hilosrcE),
 		//[mem stage]
 		//				==input==
 		//				==output=
@@ -74,6 +76,7 @@ module mips(
 		.alucontrolE(alucontrolE),
         .hilodstE(hilodstE),
         .hilotoregE(hilotoregE),
+        .hilosrcE(hilosrcE),
 		//				==output=
 		.flushE(flushE),
 		//[mem stage]

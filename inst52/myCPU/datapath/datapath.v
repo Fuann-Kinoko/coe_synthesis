@@ -17,6 +17,7 @@ module datapath(
 	input [4:0] alucontrolE,
     input hilodstE,
     input hilotoregE,
+    input hilosrcE,
 	output flushE,
 	//mem stage
 	input memtoregM,
@@ -53,8 +54,9 @@ module datapath(
 	wire [31:0] srcaE,srca2E,srcbE,srcb2E,srcb3E;
 	wire [31:0] aluoutE;
     wire [4:0] saE;
-    wire [31:0] HIE,LOE;
+    wire [31:0] HIE,HI2E,LOE,LO2E;
     wire writehiloE;
+    wire forwardHIE,forwardLOE;
 
 	//mem stage
 	wire [4:0] writeregM;
@@ -107,6 +109,8 @@ module datapath(
 	// 前推
 	mux3 forwardaemux(srcaE,resultW,aluoutM,forwardaE,srca2E);
 	mux3 forwardbemux(srcbE,resultW,aluoutM,forwardbE,srcb2E);
+    mux2 forwardHIEmux(HIE,srcaM,forwardHIE,HI2E);
+    mux2 forwardLOEmux(LOE,srcaM,forwardLOE,LO2E);
 
 	// [execute -> mem]
 	// 暂存
@@ -115,8 +119,8 @@ module datapath(
 	flopr #(5) r3M(clk,rst,writeregE,writeregM);
     flopr #(1) r4M(clk,rst,writehiloE,writehiloM);
     flopr r5M(clk,rst,srcaE,srcaM);
-    flopr r6M(clk,rst,HIE,HIM);
-    flopr r7M(clk,rst,LOE,LOM);
+    flopr r6M(clk,rst,HI2E,HIM);
+    flopr r7M(clk,rst,LO2E,LOM);
 
 	// [mem -> writeBack]
 	// 暂存
@@ -145,13 +149,19 @@ module datapath(
 		.writeregE(writeregE),
 		.regwriteE(regwriteE),
 		.memtoregE(memtoregE),
+        .hilotoregE(hilotoregE),
+        .hilosrcE(hilosrcE),
 		.forwardaE(forwardaE),
 		.forwardbE(forwardbE),
 		.flushE(flushE),
+        .forwardHIE(forwardHIE),
+        .forwardLOE(forwardLOE),
 		//mem stage
 		.writeregM(writeregM),
 		.regwriteM(regwriteM),
 		.memtoregM(memtoregM),
+        .writehiloM(writehiloM),
+        .hilowriteM(hilowriteM),
 		//write back stage
 		.writeregW(writeregW),
 		.regwriteW(regwriteW)
