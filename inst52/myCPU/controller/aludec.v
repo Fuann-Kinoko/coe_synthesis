@@ -12,11 +12,14 @@ module aludec(
             `R_TYPE: case(funct)
                 // 算术运算
                 `ADD: aluctrl = `ADD_CONTROL;
+                `ADDU: aluctrl = `ADD_CONTROL;
                 `SUB: aluctrl = `SUB_CONTROL;
+                `SUBU: aluctrl = `SUB_CONTROL;
+                `SLT: aluctrl = `SLT_CONTROL;
+                `SLTU: aluctrl = `SLTU_CONTROL;
                 // 逻辑运算
                 `AND: aluctrl = `AND_CONTROL;
                 `OR:  aluctrl = `OR_CONTROL;
-                `SLT: aluctrl = `SLT_CONTROL;
                 `XOR: aluctrl = `XOR_CONTROL;
                 `NOR: aluctrl = `NOR_CONTROL;
                 // 位移运算
@@ -27,12 +30,14 @@ module aludec(
                 `SRLV: aluctrl = `SRLV_CONTROL;
                 `SRAV: aluctrl = `SRAV_CONTROL;
             endcase
-            `LW, `SW, `ADDI, `J: aluctrl = `ADD_CONTROL;
+            `LW, `SW, `J: aluctrl = `ADD_CONTROL;
             `BEQ: aluctrl = `ADD_CONTROL;
             `LUI: aluctrl = `OR_CONTROL;
             `ORI: aluctrl = `OR_CONTROL;
             `XORI: aluctrl = `XOR_CONTROL;
             `ANDI: aluctrl = `AND_CONTROL;
+            `ADDI, `ADDIU: aluctrl = `ADD_CONTROL;
+            `SLTI, `SLTIU: aluctrl = `SLT_CONTROL;
             default: aluctrl = `AND_CONTROL;
         endcase
     end
