@@ -113,6 +113,7 @@ module datapath(
 					`BLTZ: validBranchConditionD = (srca3D[31]) | (srca3D == 32'd0);
 					`BGEZAL: validBranchConditionD = (~srca3D[31]);
 					`BLTZAL: validBranchConditionD = (srca3D[31]);
+					default: validBranchConditionD = 1'b0;
 				endcase
 			end
 		endcase
@@ -253,7 +254,7 @@ module datapath(
 	mux2 #(5) mux_regdst(rtE,rdE,regdstE,writereg_tempE);
 	// [Execute] 【特殊情况】如果是BAL或者JAL的操作，那么会被强制写回31号寄存器
 	//					   但如果是JALR的操作，那么不会覆盖，而是用rd写入
-	assign is_al_instruction = (balE | jalE) & ~(jrE & jalE);
+	assign is_al_instruction = (balE | jalE) & (~(jrE & jalE));
 	mux2 #(5) mux_regdst_al(writereg_tempE, 5'd31, is_al_instruction, writeregE);
 
 
