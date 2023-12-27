@@ -24,10 +24,7 @@ module maindec(
             `R_TYPE, `LW,
             `INST_SET_IMMEDIATE: regwrite = `regwrite_ON;
             `INST_SET_BRANCH: begin
-                case(rt)
-                    `BGEZAL, `BLTZAL: regwrite = `regwrite_ON;
-                    default: regwrite = `regwrite_OFF;
-                endcase
+                regwrite = (rt == `BGEZAL || rt == `BLTZAL) ? `regwrite_ON : `regwrite_OFF;
             end
             default: regwrite = `regwrite_OFF;
         endcase
