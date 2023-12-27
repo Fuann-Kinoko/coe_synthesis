@@ -5,12 +5,13 @@ module controller(
 	input clk,rst,
 
 	//decode stage
-	input [5:0] opD,functD,equalD,
+	input [5:0] opD,rsD,rtD,functD,validBranchConditionD,
 	output pcsrcD,branchD,jumpD,
 
 	//execute stage
 	input flushE,
 	output memtoregE,alusrcE,
+	output balE,
 	output regdstE,regwriteE,
 	output [4:0] alucontrolE,
 
@@ -25,6 +26,7 @@ module controller(
 
 	//decode stage
 	wire memtoregD,memwriteD,alusrcD,regdstD,regwriteD;
+	wire balD;
 	wire[4:0] alucontrolD;
 	//execute stage
 	wire memwriteE;
@@ -32,13 +34,13 @@ module controller(
 	// 用不到的，就继续传
 
 	// [decode -> execute]
-	assign pcsrcD = branchD & equalD;
+	assign pcsrcD = branchD & validBranchConditionD;
 	// 注意，这里存在flush可能性
-	floprc #(10) regE(
+	floprc #(11) regE(
 		clk, rst,
 		flushE,
-		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD},
-		{memtoregE,memwriteE,alusrcE,regdstE,regwriteE,alucontrolE}
+		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD,balD},
+		{memtoregE,memwriteE,alusrcE,regdstE,regwriteE,alucontrolE,balE}
 	);
 
 	// [execute -> mem]
@@ -62,11 +64,14 @@ module controller(
 
 	maindec control_maindec(
 		.op(opD),
+		.rs(rsD),
+		.rt(rtD),
 		//input
         .regwrite(regwriteD),
         .regdst(regdstD),
         .alusrc(alusrcD),
         .branch(branchD),
+		.bal(balD),
         .memWrite(memwriteD),
         .memToReg(memtoregD),
         .jump(jumpD)

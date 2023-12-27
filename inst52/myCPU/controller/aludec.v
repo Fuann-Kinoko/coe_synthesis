@@ -1,5 +1,7 @@
 `include "../utils/defines2.vh"
 `timescale 1ns / 1ps
+`define INST_SET_BRANCH `BEQ, `BNE, `BGTZ, `BLEZ, `BG_EXT_INST
+`define USELESS_CONTROL `AND_CONTROL
 
 module aludec(
     input [5:0] op,
@@ -30,8 +32,9 @@ module aludec(
                 `SRLV: aluctrl = `SRLV_CONTROL;
                 `SRAV: aluctrl = `SRAV_CONTROL;
             endcase
-            `LW, `SW, `J: aluctrl = `ADD_CONTROL;
-            `BEQ: aluctrl = `ADD_CONTROL;
+            `LW, `SW: aluctrl = `ADD_CONTROL;
+            `J: aluctrl = `ADD_CONTROL;
+            `INST_SET_BRANCH: aluctrl = `ADD_CONTROL;
             `LUI: aluctrl = `OR_CONTROL;
             `ORI: aluctrl = `OR_CONTROL;
             `XORI: aluctrl = `XOR_CONTROL;
