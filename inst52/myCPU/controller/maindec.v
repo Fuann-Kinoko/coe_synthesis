@@ -13,6 +13,7 @@ module maindec(
     output reg alusrc,
     output reg branch,
     output reg bal,
+    output reg jal,
     output reg memWrite,
     output reg memToReg,
     output reg jump
@@ -26,6 +27,7 @@ module maindec(
             `INST_SET_BRANCH: begin
                 regwrite = (rt == `BGEZAL || rt == `BLTZAL) ? `regwrite_ON : `regwrite_OFF;
             end
+            `JAL: regwrite = `regwrite_ON;
             default: regwrite = `regwrite_OFF;
         endcase
     end
@@ -74,8 +76,18 @@ module maindec(
     // jump
     always @(*) begin
         case(op)
-            `J: jump = `jump_ON;
-            default: jump = `jump_OFF;
+            `J: begin
+                jump = `jump_ON;
+                jal = `jal_OFF;
+            end
+            `JAL: begin
+                jump = `jump_ON;
+                jal = `jal_ON;
+            end
+            default: begin
+                jump = `jump_OFF;
+                jal = `jal_OFF;
+            end
         endcase
     end
 

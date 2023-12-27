@@ -21,3 +21,6 @@
 
 `define jump_ON             1'b1
 `define jump_OFF            1'b0
+
+`define jal_ON              1'b1
+`define jal_OFF             1'b0

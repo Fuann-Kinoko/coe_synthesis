@@ -8,7 +8,7 @@ module datapath(
 	output [31:0] pcF,
 	//decode stage
 	input pcsrcD,branchD,
-	input jumpD,
+	input jumpD,jalD,
 	output reg validBranchConditionD,
 	output [5:0] opD,rsD,rtD,functD,
 	//execute stage
@@ -16,7 +16,7 @@ module datapath(
 	input alusrcE,regdstE,
 	input regwriteE,
 	input [4:0] alucontrolE,
-	input balE,
+	input balE, jalE,
 	output flushE,
 	//mem stage
 	input memtoregM,
@@ -209,11 +209,12 @@ module datapath(
 
 
 	wire [4:0] writereg_tempE; // 存储通过regdst得到的寄存器号，但有可能被BAL或JAL覆盖
+	wire is_al_instruction;
 	// [Execute] 决定 write register 是 rt 还是 rd
 	mux2 #(5) mux_regdst(rtE,rdE,regdstE,writereg_tempE);
 	// [Execute] 【特殊情况】如果是BAL或者JAL的操作，那么会被强制写回31号寄存器
-	// TODO: 目前只考虑了BAL情况，还未考虑JAL情况
-	mux2 #(5) mux_regdst_al(writereg_tempE, 5'd31, balE, writeregE);
+	assign is_al_instruction = balE | jalE;
+	mux2 #(5) mux_regdst_al(writereg_tempE, 5'd31, is_al_instruction, writeregE);
 
 
 	wire [31:0] aluout_tempE; // 存储从ALU出来的结果，但有可能被BAL或JAL覆盖
@@ -224,7 +225,7 @@ module datapath(
     // [Execute] ALU运算，控制冒险提前判断了branch，不再需要zero
 	alu alu(srca2E,srcb3E,saE,alucontrolE,aluout_tempE);
 	// [Execute] 【特殊情况】如果是BAL或者JAL的操作，pc+8的内容要写入31号寄存器，需要将pc+8作为aluout的结果
-	mux2 mux_ALUout(aluout_tempE, pc_plus8E, balE, aluoutE);
+	mux2 mux_ALUout(aluout_tempE, pc_plus8E, is_al_instruction, aluoutE);
 
     // [WriteBack] 判断写回寄存器堆的是：从ALU出来的结果（可能被BAL或JAL覆盖） or 从数据存储器读取的data
 	mux2 mux_regwriteData(aluoutW,readdataW,memtoregW,resultW);

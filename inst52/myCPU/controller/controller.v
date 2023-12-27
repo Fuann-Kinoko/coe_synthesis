@@ -6,12 +6,12 @@ module controller(
 
 	//decode stage
 	input [5:0] opD,rsD,rtD,functD,validBranchConditionD,
-	output pcsrcD,branchD,jumpD,
+	output pcsrcD,branchD,jumpD,jalD,
 
 	//execute stage
 	input flushE,
 	output memtoregE,alusrcE,
-	output balE,
+	output balE,jalE,
 	output regdstE,regwriteE,
 	output [4:0] alucontrolE,
 
@@ -36,11 +36,11 @@ module controller(
 	// [decode -> execute]
 	assign pcsrcD = branchD & validBranchConditionD;
 	// 注意，这里存在flush可能性
-	floprc #(11) regE(
+	floprc #(12) regE(
 		clk, rst,
 		flushE,
-		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD,balD},
-		{memtoregE,memwriteE,alusrcE,regdstE,regwriteE,alucontrolE,balE}
+		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD,balD,jalD},
+		{memtoregE,memwriteE,alusrcE,regdstE,regwriteE,alucontrolE,balE,jalE}
 	);
 
 	// [execute -> mem]
@@ -72,6 +72,7 @@ module controller(
         .alusrc(alusrcD),
         .branch(branchD),
 		.bal(balD),
+		.jal(jalD),
         .memWrite(memwriteD),
         .memToReg(memtoregD),
         .jump(jumpD)
