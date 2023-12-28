@@ -18,13 +18,15 @@ module datapath(
 	input regwriteE,
 	input [4:0] alucontrolE,
 	input balE, jalE, jrE,
-    input hilodstE, hilotoregE, hilosrcE,
+    input hilotoregE, hilosrcE,
+    input mulOrdivE,
 	output flushE,
 	//mem stage
 	input memtoregM,
 	input regwriteM,
     input hilowriteM,hilotoregM,hilosrcM,
 	input [31:0] readdataM,
+    input regToHilo_hiM,regToHilo_loM,mdToHiloM,
 	output [31:0] aluoutM,writedataM,
 	//writeback stage
 	input memtoregW,
@@ -32,6 +34,9 @@ module datapath(
     input hilotoregW
 );
 
+    //测试数据，暂时用于代表乘法结果与除法结果
+    wire [31:0] mulResult_hiE=32'h00000000,mulResult_loE=32'h00000000;//乘法结果
+    wire [31:0] divResult_hiE=32'h00000000,divResult_loE=32'h00000000;//除法结果
 	//fetch stage
 	wire stallF;
 	wire [31:0] pc_plus4F;
@@ -58,14 +63,15 @@ module datapath(
 	wire [31:0] aluoutE;
     wire [4:0] saE;
     wire [31:0] HIE,HI2E,LOE,LO2E;
-    wire writehiloE;
     wire forwardHIE,forwardLOE;
+    wire [31:0] mdResult_hiE,mdResult_loE;
 
 	//mem stage
 	wire [4:0] writeregM;
     wire [31:0] srcaM;
-    wire [31:0] HIM,LOM;
+    wire [31:0] HIM,HI2M,LOM,LO2M;
     wire [31:0] hilooutM;
+    wire [31:0] mdResult_hiM,mdResult_loM;
 
 	//writeback stage
 	wire [4:0] writeregW;
@@ -134,18 +140,22 @@ module datapath(
 	// 前推
 	mux3 forwardaemux(srcaE,resultW,aluoutM,forwardaE,srca2E);
 	mux3 forwardbemux(srcbE,resultW,aluoutM,forwardbE,srcb2E);
-    mux2 forwardHIEmux(HIE,srcaM,forwardHIE,HI2E);
-    mux2 forwardLOEmux(LOE,srcaM,forwardLOE,LO2E);
+    mux2 forwardHIEmux(HIE,HI2M,forwardHIE,HI2E);
+    mux2 forwardLOEmux(LOE,LO2M,forwardLOE,LO2E);
 
 	// [execute -> mem]
 	// 暂存
 	flopr r1M(clk,rst,srcb2E,writedataM);
 	flopr r2M(clk,rst,aluoutE,aluoutM);
 	flopr #(5) r3M(clk,rst,writeregE,writeregM);
-    flopr #(1) r4M(clk,rst,writehiloE,writehiloM);
     flopr r5M(clk,rst,srcaE,srcaM);
     flopr r6M(clk,rst,HI2E,HIM);
     flopr r7M(clk,rst,LO2E,LOM);
+    flopr r8M(clk,rst,mdResult_hiE,mdResult_hiM);
+    flopr r9M(clk,rst,mdResult_loE,mdResult_loM);
+    // 更新hilo_reg前，确定HI、LO
+    mux3 mux_HI2M(HIM,mdResult_hiM,srcaM,{regToHilo_hiM,mdToHiloM},HI2M);
+    mux3 mux_LO2M(LOM,mdResult_loM,srcaM,{regToHilo_loM,mdToHiloM},LO2M);
 
 	// [mem -> writeBack]
 	// 暂存
@@ -187,8 +197,10 @@ module datapath(
 		.writeregM(writeregM),
 		.regwriteM(regwriteM),
 		.memtoregM(memtoregM),
-        .writehiloM(writehiloM),
         .hilowriteM(hilowriteM),
+        .regToHilo_hiM(regToHilo_hiM),
+        .regToHilo_loM(regToHilo_loM),
+        .mdToHiloM(mdToHiloM),
 		//write back stage
 		.writeregW(writeregW),
 		.regwriteW(regwriteW)
@@ -256,6 +268,9 @@ module datapath(
 	//					   但如果是JALR的操作，那么不会覆盖，而是用rd写入
 	assign is_al_instruction = (balE | jalE) & (~(jrE & jalE));
 	mux2 #(5) mux_regdst_al(writereg_tempE, 5'd31, is_al_instruction, writeregE);
+    // [Execute] 决定使用乘法结果-mulResult还是除法结果-divResult
+    mux2 mux_mdresult_hi(divResult_hiE,mulResult_hiE,mulOrdivE,mdResult_hiE);
+    mux2 mux_mdresult_lo(divResult_loE,mulResult_loE,mulOrdivE,mdResult_loE);
 
 
 	wire [31:0] aluout_tempE; // 存储从ALU出来的结果，但有可能被BAL或JAL覆盖
@@ -268,13 +283,11 @@ module datapath(
 	// [Execute] 【特殊情况】如果是BAL或者JAL的操作，pc+8的内容要写入31号寄存器，需要将pc+8作为aluout的结果
 	//					   如果是JALR的操作，同样要写入pc+8
 	mux2 mux_ALUout(aluout_tempE, pc_plus8E, (balE | jalE), aluoutE);
-    // [Execute] 决定 write hilo_reg 是 HI 还是 LO
-	assign writehiloE = hilodstE;
 
     // [Memory] 写hilo_reg
-    hilo_reg hilo(clk,rst,hilowriteM,writehiloM,srcaM,HID,LOD);
+    hilo_reg hilo(clk,rst,hilowriteM,HI2M,LO2M,HID,LOD);
     // [Memory] 决定 write rd是 HI,还是LO
-    mux2 mux_rddst(LOM,HIM,hilosrcM,hilooutM);
+    mux2 mux_rddst(LO2M,HI2M,hilosrcM,hilooutM);
 
     // [WriteBack] 判断写回寄存器堆的是：从ALU出来的结果（可能被BAL、JAL或JALR覆盖） or 从数据存储器读取的data or HI/LO寄存器的数据
 	// mux2 mux_regwriteData(aluoutW,readdataW,memtoregW,resultW);

@@ -25,7 +25,8 @@ module hazard(
 	input [4:0] writeregM,
 	input regwriteM,
 	input memtoregM,
-    input writehiloM,hilowriteM,
+    input hilowriteM,
+    input regToHilo_hiM,regToHilo_loM,mdToHiloM,
 
 	//write back stage
 	input [4:0] writeregW,
@@ -47,8 +48,8 @@ module hazard(
 
     // 针对数据移动指令（MF、MT）的数据前推
     // E阶段需要读hilo_reg & M阶段hilo_reg需要写的寄存器号与需要前推的E阶段hilo_reg需要读的寄存器号相同 & M阶段hilo_reg的写使能有效
-    assign forwardHIE = ((hilotoregE) & (hilosrcE == writehiloM) & (hilowriteM)) ? 1'b1 : 1'b0;
-    assign forwardLOE = ((hilotoregE) & (hilosrcE == writehiloM) & (hilowriteM)) ? 1'b1 : 1'b0;
+    assign forwardHIE = ((hilotoregE) & (hilosrcE & (regToHilo_hiM | mdToHiloM)) & (hilowriteM)) ? 1'b1 : 1'b0;
+    assign forwardLOE = ((hilotoregE) & (!hilosrcE & (regToHilo_loM | mdToHiloM)) & (hilowriteM)) ? 1'b1 : 1'b0;
 
 	// 			-> 暂停
 	// 假设当前指令是lw，下一条指令刚好需要lw写入的寄存器。当下一条指令执行至EXE阶段时，当前指令
