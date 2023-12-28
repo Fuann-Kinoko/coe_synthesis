@@ -1,66 +1,178 @@
 `include "../utils/defines2.vh"
+`include "../utils/control_signal_define.vh"
 `timescale 1ns / 1ps
+`define INST_SET_BRANCH `BEQ, `BNE, `BGTZ, `BLEZ, `BG_EXT_INST
+`define INST_SET_IMMEDIATE `ADDI, `ANDI, `LUI, `ORI, `XORI, `ADDIU, `SLTI, `SLTIU
 
 module maindec(
     input [5:0] op,
+    input [4:0] rs,
+    input [4:0] rt,
+    input [4:0] rd,
+    input [5:0] funct,
     output reg regwrite,
     output reg regdst,
     output reg alusrc,
     output reg branch,
+    output reg bal,
+    output reg jal,
+    output reg jr,
     output reg memWrite,
     output reg memToReg,
-    output reg jump
+    output reg jump,
+    output reg hilowrite,
+    output reg hilodst,
+    output reg hiloToReg,
+    output reg hilosrc
     );
 
     // regwrite
     always @(*) begin
         case(op)
-            `R_TYPE, `LW,
-            `ADDI, `ANDI, `LUI, `ORI, `ANDI, `XORI: regwrite = 1'b1;
-            default: regwrite = 1'b0;
+            `R_TYPE: begin
+                case(funct)
+                    `ADD,       `ADDU,
+                    `SUB,       `SUBU,
+                    `SLT,       `SLTU,
+                    `AND,       `NOR,
+                    `OR,        `XOR,
+                    `SLLV,      `SLL,
+                    `SRAV,      `SRA,
+                    `SRLV,      `SRL,
+                    `JALR,      `MFHI,
+                    `MFLO:      regwrite = `SET_ON;
+                    default:    regwrite = `SET_OFF;
+                endcase
+            end
+
+            `ADDI,      `ADDIU,
+            `ADDIU,     `SLTI,
+            `SLTIU,     `ANDI,
+            `LUI,       `ORI,
+            `XORI,      `BNE:   regwrite = `SET_ON;
+
+            `BG_EXT_INST: begin
+                case(rt)
+                    `BGEZAL,    `BLTZAL:    regwrite = `SET_ON;
+                    default:                regwrite = `SET_OFF;
+                endcase
+            end
+
+            `JAL,       `LB,
+            `LBU,       `LH,
+            `LHU,       `LW:    regwrite = `SET_ON;
+
+            default:            regwrite = `SET_OFF;
         endcase
     end
     // regdst
     always @(*) begin
         case(op)
-            `R_TYPE: regdst = 1'b1;
-            default: regdst = 1'b0;
+            `R_TYPE: regdst = `regdst_RD;
+            default: regdst = `regdst_RT;
         endcase
     end
     // alusrc
     always @(*) begin
         case(op)
-            `SW, `LW,
-            `ADDI, `ANDI, `LUI, `ORI, `XORI: alusrc = 1'b1;
-            default: alusrc = 1'b0;
+            `ADDI,      `ADDIU,
+            `SLTI,      `SLTIU,
+            `ANDI,      `LUI,
+            `ORI,       `XORI,
+            `LB,        `LBU,
+            `LH,        `LHU,
+            `LW,        `SB,
+            `SH,        `SW:    alusrc = `alusrc_IMM;
+            default:            alusrc = `alusrc_RD;
         endcase
     end
-    // branch
+    // branch & bal
     always @(*) begin
         case(op)
-            `BEQ: branch = 1'b1;
-            default: branch = 1'b0;
+            `BEQ,       `BNE,
+            `BGTZ,      `BLEZ:          begin branch = `SET_ON; bal = `SET_OFF; end
+
+            `BG_EXT_INST: begin
+                case(rt)
+                `BGEZ,      `BLTZ:      begin branch = `SET_ON; bal = `SET_OFF; end
+                `BGEZAL,    `BLTZAL:    begin branch = `SET_ON; bal = `SET_ON; end
+                default:                begin branch = `SET_OFF; bal = `SET_OFF; end
+                endcase
+            end
+            default:                    begin branch = `SET_OFF; bal = `SET_OFF; end
         endcase
     end
     // memWrite
     always @(*) begin
         case(op)
-            `SW: memWrite = 1'b1;
-            default: memWrite = 1'b0;
+            `SW,        `SB,
+            `SH:            memWrite = `SET_ON;
+            default:        memWrite = `SET_OFF;
         endcase
     end
     // memToReg
     always @(*) begin
         case(op)
-            `LW: memToReg = 1'b1;
-            default: memToReg = 1'b0;
+            `LW,        `LB,
+            `LBU,       `LH,
+            `LHU:           memToReg = `memToReg_MEM;
+            default:        memToReg = `memToReg_ALU;
         endcase
     end
-    // jump
+    // jump && jal && jr
     always @(*) begin
         case(op)
-            `J: jump = 1'b1;
-            default: jump = 1'b0;
+            `J:     begin jump = `SET_ON; jal = `SET_OFF; jr = `SET_OFF; end
+            `JAL:   begin jump = `SET_ON; jal = `SET_ON; jr = `SET_OFF; end
+            `R_TYPE: begin
+                case(funct)
+                    `JR:        begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_ON; end
+                    `JALR :     begin jump = `SET_OFF; jal = `SET_ON; jr = `SET_ON; end
+                    default:    begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_OFF; end
+                endcase
+            end
+            default: begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_OFF; end
+        endcase
+    end
+
+    // hilowrite - 是否要写hilo_reg
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                `MTHI,`MTLO:    hilowrite = `SET_ON;
+                default:        hilowrite = `SET_OFF;
+            endcase
+            default:            hilowrite = `SET_OFF;
+        endcase
+    end
+    // hilodst - 写HI or LO
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                `MTHI:          hilodst =   `SET_ON;
+                default:        hilodst =   `SET_OFF;
+            endcase
+            default:            hilowrite = `SET_OFF;
+        endcase
+    end
+    // hiloToReg - 是否将HI/LO的值写入rd
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                `MFHI,`MFLO:    hiloToReg = `SET_ON;
+                default:        hiloToReg = `SET_OFF;
+            endcase
+            default:            hiloToReg = `SET_OFF;
+        endcase
+    end
+    // hilosrc - 写入rd的值是来自于HI还是LO
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                `MFHI:          hilosrc = `SET_ON;
+                default:        hilosrc = `SET_OFF;
+            endcase
+            default:            hilosrc = `SET_OFF;
         endcase
     end
 

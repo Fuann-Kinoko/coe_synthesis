@@ -1,5 +1,7 @@
 `include "../utils/defines2.vh"
 `timescale 1ns / 1ps
+`define INST_SET_BRANCH `BEQ, `BNE, `BGTZ, `BLEZ, `BG_EXT_INST
+`define USELESS_CONTROL `AND_CONTROL
 
 module aludec(
     input [5:0] op,
@@ -12,11 +14,14 @@ module aludec(
             `R_TYPE: case(funct)
                 // 算术运算
                 `ADD: aluctrl = `ADD_CONTROL;
+                `ADDU: aluctrl = `ADD_CONTROL;
                 `SUB: aluctrl = `SUB_CONTROL;
+                `SUBU: aluctrl = `SUB_CONTROL;
+                `SLT: aluctrl = `SLT_CONTROL;
+                `SLTU: aluctrl = `SLTU_CONTROL;
                 // 逻辑运算
                 `AND: aluctrl = `AND_CONTROL;
                 `OR:  aluctrl = `OR_CONTROL;
-                `SLT: aluctrl = `SLT_CONTROL;
                 `XOR: aluctrl = `XOR_CONTROL;
                 `NOR: aluctrl = `NOR_CONTROL;
                 // 位移运算
@@ -26,13 +31,18 @@ module aludec(
                 `SLLV: aluctrl = `SLLV_CONTROL;
                 `SRLV: aluctrl = `SRLV_CONTROL;
                 `SRAV: aluctrl = `SRAV_CONTROL;
+                // ...
+                default: aluctrl = `ADD_CONTROL;
             endcase
-            `LW, `SW, `ADDI, `J: aluctrl = `ADD_CONTROL;
-            `BEQ: aluctrl = `ADD_CONTROL;
+            `LW, `SW: aluctrl = `ADD_CONTROL;
+            `J, `JAL: aluctrl = `ADD_CONTROL; // TODO: 我假设这些指令都用不到ALU，之后试着替换成`USELESS_CONTROL看看
+            `INST_SET_BRANCH: aluctrl = `ADD_CONTROL; // TODO: 我假设这些指令都用不到ALU，之后试着替换成`USELESS_CONTROL看看
             `LUI: aluctrl = `OR_CONTROL;
             `ORI: aluctrl = `OR_CONTROL;
             `XORI: aluctrl = `XOR_CONTROL;
             `ANDI: aluctrl = `AND_CONTROL;
+            `ADDI, `ADDIU: aluctrl = `ADD_CONTROL;
+            `SLTI, `SLTIU: aluctrl = `SLT_CONTROL;
             default: aluctrl = `AND_CONTROL;
         endcase
     end
