@@ -12,3 +12,9 @@
 
 `define memToReg_MEM        1'b1
 `define memToReg_ALU        1'b0
+
+`define hilosrc_HI          1'b1
+`define hilosrc_LO          1'b0
+
+`define mulOrdiv_MUL        1'b1
+`define mulOrdiv_DIV        1'b0

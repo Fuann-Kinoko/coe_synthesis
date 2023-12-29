@@ -5,8 +5,9 @@ module controller(
 	input clk,rst,
 
 	//decode stage
-	input [4:0] rsD,rtD,
-	input [5:0] opD,functD,validBranchConditionD,
+	input [4:0] rsD,rtD,rdD,
+	input [5:0] opD,functD,
+	input validBranchConditionD,
 	output pcsrcD,branchD,jumpD,jalD,jrD,
 
 	//execute stage
@@ -20,7 +21,7 @@ module controller(
     output mulOrdivE,
     output hilotoregE,
     output hilosrcE,
-    output isSignE,
+    output mdIsSignE,
 
 
 	//mem stage
@@ -33,7 +34,7 @@ module controller(
 
 	//decode stage
 	wire memtoregD,memwriteD,alusrcD,regdstD,regwriteD;
-	wire regToHilo_hiD,regToHilo_loD,mdToHiloD,mulOrdivD,hilowriteD,hilotoregD,hilosrcD,isSignD;
+	wire regToHilo_hiD,regToHilo_loD,mdToHiloD,mulOrdivD,hilowriteD,hilotoregD,hilosrcD,mdIsSignD;
 	wire balD;
 	wire[4:0] alucontrolD;
 	//execute stage
@@ -44,12 +45,12 @@ module controller(
 	// [decode -> execute]
 	assign pcsrcD = branchD & validBranchConditionD;
 	// 注意，这里存在flush可能性
-	floprc #(21) regE(
+	flopenrc #(21) regE(
 		clk, rst,
         ~stallE,
 		flushE,
-		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD,balD,jalD,jrD,regToHilo_hiD,regToHilo_loD,mdToHiloD,mulOrdivD,hilowriteD,hilotoregD,hilosrcD,isSignD},
-		{memtoregE,memwriteE,alusrcE,regdstE,regwriteE,alucontrolE,balE,jalE,jrE,regToHilo_hiE,regToHilo_loE,mdToHiloE,mulOrdivE,hilowriteE,hilotoregE,hilosrcE,isSignE}
+		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD,balD,jalD,jrD,regToHilo_hiD,regToHilo_loD,mdToHiloD,mulOrdivD,hilowriteD,hilotoregD,hilosrcD,mdIsSignD},
+		{memtoregE,memwriteE,alusrcE,regdstE,regwriteE,alucontrolE,balE,jalE,jrE,regToHilo_hiE,regToHilo_loE,mdToHiloE,mulOrdivE,hilowriteE,hilotoregE,hilosrcE,mdIsSignE}
 	);
 
 	// [execute -> mem]
@@ -95,7 +96,7 @@ module controller(
         .mulOrdiv(mulOrdivD),
         .hiloToReg(hilotoregD),
         .hilosrc(hilosrcD),
-        .isSign(isSignD)
+        .mdIsSign(mdIsSignD)
         //output
 	);
 

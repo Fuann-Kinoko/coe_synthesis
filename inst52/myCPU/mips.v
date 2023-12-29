@@ -5,21 +5,22 @@ module mips(
 	input [31:0] instrF,
 	input [31:0] readdataM,
 	output [31:0] pcF,
-	// TODO: hilowrite和hilosrc好像不涉及与mem或者inst ram交互？那么到时候把它移到wire中，不要作为mips模块的输出
-	output memwriteM,hilowriteM,hilosrcM,
+	output memwriteM,
 	output [31:0] aluoutM,writedataM
 );
 
+
 	wire [5:0] opD,functD;
-	wire [4:0] rsD,rtD;
+	wire [4:0] rsD,rtD,rdD;
 	wire regdstE,alusrcE,branchD,jalD,jrD,pcsrcD,memtoregE,memtoregM,memtoregW;
 	wire balE,jalE,jrE,regwriteE,regwriteM,regwriteW;
 	wire [4:0] alucontrolE;
 	wire flushE,validBranchConditionD;
-    wire regToHilo_hiE,regToHilo_loE,mdToHiloE,mulOrdivE,isSignE;
+    wire regToHilo_hiE,regToHilo_loE,mdToHiloE,mulOrdivE,mdIsSignE;
     wire regToHilo_hiM,regToHilo_loM,mdToHiloM;
     wire hilotoregE;
     wire hilotoregM,hilotoregW;
+	wire hilowriteM,hilosrcM;
     wire hilosrcE;
 
 	controller c(
@@ -30,7 +31,8 @@ module mips(
 		//[decode stage]
 		//				==input==
 		.opD(opD), 					.rsD(rsD),
-		.rtD(rtD), 					.functD(functD),
+		.rtD(rtD), 					.rdD(rdD),
+		.functD(functD),
 		.validBranchConditionD(validBranchConditionD),
 		//				==output=
 		.pcsrcD(pcsrcD),			.branchD(branchD),
@@ -49,7 +51,7 @@ module mips(
         .mdToHiloE(mdToHiloE),      .mulOrdivE(mulOrdivE),
         .hilotoregE(hilotoregE),
         .hilosrcE(hilosrcE),
-        .isSignE(isSignE),
+        .mdIsSignE(mdIsSignE),
 		//[mem stage]
 		//				==input==
 		//				==output=
@@ -82,7 +84,7 @@ module mips(
 		//				==output=
 		.validBranchConditionD(validBranchConditionD), 			.opD(opD),
 		.rsD(rsD),				.rtD(rtD),
-		.functD(functD),
+		.rdD(rdD),				.functD(functD),
 		//[execute stage]
 		//				==input==
 		.memtoregE(memtoregE),		.alusrcE(alusrcE),
@@ -92,7 +94,7 @@ module mips(
         .hilotoregE(hilotoregE),
         .hilosrcE(hilosrcE),
         .mulOrdivE(mulOrdivE),
-        .isSignE(isSignE),          .mdToHiloE(mdToHiloE),
+        .mdIsSignE(mdIsSignE),          .mdToHiloE(mdToHiloE),
 		//				==output=
 		.flushE(flushE),            .stallE(stallE),
 		//[mem stage]

@@ -10,7 +10,7 @@ module datapath(
 	input pcsrcD,branchD,
 	input jumpD,jalD,jrD,
 	output reg validBranchConditionD,
-	output [4:0] rsD,rtD,
+	output [4:0] rsD,rtD,rdD,
 	output [5:0] opD,functD,
 	//execute stage
 	input memtoregE,
@@ -19,7 +19,7 @@ module datapath(
 	input [4:0] alucontrolE,
 	input balE, jalE, jrE,
     input hilotoregE, hilosrcE,
-    input mulOrdivE,isSignE,mdToHiloE,
+    input mulOrdivE,mdIsSignE,mdToHiloE,
 	output flushE,stallE,
 	//mem stage
 	input memtoregM,
@@ -46,7 +46,6 @@ module datapath(
 	wire [31:0] pc_plus4D, pc_plus8D, instrD;
 	wire forwardaD,forwardbD;
 	wire jrstall_READ;
-	wire [4:0] rdD;
 	wire stallD;
 	wire [31:0] signimmD,signimm_slD;
 	wire [31:0] srcaD,srca2D,srcbD,srcb2D,srca3D,srcb3D;
@@ -74,7 +73,7 @@ module datapath(
             2'b10:begin
                 if(div_readyE == 1'b0) begin start_divE = 1'b1;stall_divE = 1'b1; end
                 else if(div_readyE == 1'b1 ) begin start_divE = 1'b0;stall_divE = 1'b0; end
-            end 
+            end
             default: begin start_divE = 1'b0;stall_divE = 1'b0; end
         endcase
     end
@@ -140,16 +139,16 @@ module datapath(
 
 	// [decode -> execute]
 	// 暂存
-	floprc r1E(clk,rst,~stallE,flushE,srcaD,srcaE);
-	floprc r2E(clk,rst,~stallE,flushE,srcbD,srcbE);
-	floprc r3E(clk,rst,~stallE,flushE,signimmD,signimmE);
-	floprc #(5) r4E(clk,rst,~stallE,flushE,rsD,rsE); // 如果只有暂存，rsD没必要推过去，但rsE对hazard前推有用
-	floprc #(5) r5E(clk,rst,~stallE,flushE,rtD,rtE);
-	floprc #(5) r6E(clk,rst,~stallE,flushE,rdD,rdE);
-    floprc #(5) r7E(clk,rst,~stallE,flushE,saD,saE);
-	floprc #(32) r8E(clk,rst,~stallE,flushE,pc_plus8D,pc_plus8E);
-    floprc r9E(clk,rst,~stallE,flushE,HID,HIE);
-    floprc r10E(clk,rst,~stallE,flushE,LOD,LOE);
+	flopenrc r1E(clk,rst,~stallE,flushE,srcaD,srcaE);
+	flopenrc r2E(clk,rst,~stallE,flushE,srcbD,srcbE);
+	flopenrc r3E(clk,rst,~stallE,flushE,signimmD,signimmE);
+	flopenrc #(5) r4E(clk,rst,~stallE,flushE,rsD,rsE); // 如果只有暂存，rsD没必要推过去，但rsE对hazard前推有用
+	flopenrc #(5) r5E(clk,rst,~stallE,flushE,rtD,rtE);
+	flopenrc #(5) r6E(clk,rst,~stallE,flushE,rdD,rdE);
+    flopenrc #(5) r7E(clk,rst,~stallE,flushE,saD,saE);
+	flopenrc #(32) r8E(clk,rst,~stallE,flushE,pc_plus8D,pc_plus8E);
+    flopenrc r9E(clk,rst,~stallE,flushE,HID,HIE);
+    flopenrc r10E(clk,rst,~stallE,flushE,LOD,LOE);
 	// 前推
 	mux3 forwardaemux(srcaE,resultW,aluoutM,forwardaE,srca2E);
 	mux3 forwardbemux(srcbE,resultW,aluoutM,forwardbE,srcb2E);
@@ -299,9 +298,9 @@ module datapath(
 	//					   如果是JALR的操作，同样要写入pc+8
 	mux2 mux_ALUout(aluout_tempE, pc_plus8E, (balE | jalE), aluoutE);
     // [Execute] 乘法运算
-    mul mul(srca2E,srcb3E,isSignE,mulResult_hiE,mulResult_loE);
+    mul mul(srca2E,srcb3E,mdIsSignE,mulResult_hiE,mulResult_loE);
     // [Execute] 除法运算
-    div div(clk,rst,isSignE,srca2E,srcb3E,start_divE,flushE,{divResult_hiE,divResult_loE},div_readyE);
+    div div(clk,rst,mdIsSignE,srca2E,srcb3E,start_divE,flushE,{divResult_hiE,divResult_loE},div_readyE);
 
     // [Memory] 写hilo_reg
     hilo_reg hilo(clk,rst,hilowriteM,HI2M,LO2M,HID,LOD);
@@ -310,5 +309,5 @@ module datapath(
 
     // [WriteBack] 判断写回寄存器堆的是：从ALU出来的结果（可能被BAL、JAL或JALR覆盖） or 从数据存储器读取的data or HI/LO寄存器的数据
 	// mux2 mux_regwriteData(aluoutW,readdataW,memtoregW,resultW);
-    mux3 mux_regwriteData(aluoutW,readataW,hilooutW,{hilotoregW,memtoregW},resultW);
+    mux3 mux_regwriteData(aluoutW,readdataW,hilooutW,{hilotoregW,memtoregW},resultW);
 endmodule
