@@ -5,6 +5,7 @@ module mips(
 	input [31:0] instrF,
 	input [31:0] readdataM,
 	output [31:0] pcF,
+	// TODO: hilowrite和hilosrc好像不涉及与mem或者inst ram交互？那么到时候把它移到wire中，不要作为mips模块的输出
 	output memwriteM,hilowriteM,hilosrcM,
 	output [31:0] aluoutM,writedataM
 );
