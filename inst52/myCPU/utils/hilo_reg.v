@@ -2,19 +2,19 @@
 
 module hilo_reg(
     input wire clk,rst,we3,
-    input wire wa3,
-    input wire [31:0] wd3,
-    output wire [31:0] hi,lo
+    input [31:0] hi_i,lo_i,
+    output wire [31:0] hi_o,lo_o
 );
-   reg [31:0] rf[1:0];//rf[1]-HI、rf[0]-LO
+   reg [31:0] HI,LO;
    always @(negedge clk) begin
     if(rst) begin
-        rf[1] <= 0;
-        rf[0] <= 0;
+        HI <= 0;
+        LO <= 0;
     end else if(we3) begin
-        rf[wa3] <= wd3;
+        HI <= hi_i;
+        LO <= lo_i;
     end
    end
-   assign hi = rf[1];
-   assign lo = rf[0];
+   assign hi_o = HI;
+   assign lo_o = LO;
 endmodule
