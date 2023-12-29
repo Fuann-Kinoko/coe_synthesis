@@ -16,7 +16,8 @@ module mips(
 	wire balE,jalE,jrE,regwriteE,regwriteM,regwriteW;
 	wire [4:0] alucontrolE;
 	wire flushE,validBranchConditionD;
-    wire hilodstE;
+    wire regToHilo_hiE,regToHilo_loE,mdToHiloE,mulOrdivE,isSignE;
+    wire regToHilo_hiM,regToHilo_loM,mdToHiloM;
     wire hilotoregE;
     wire hilotoregM,hilotoregW;
     wire hilosrcE;
@@ -37,19 +38,25 @@ module mips(
 		.jrD(jrD),
 		//[execute stage]
 		//				==input==
-		.flushE(flushE),
+		.flushE(flushE),            .stallE(stallE),
 			//output
 		.memtoregE(memtoregE), 		.alusrcE(alusrcE),
 		.regdstE(regdstE), 			.regwriteE(regwriteE),
 		.alucontrolE(alucontrolE), 	.balE(balE),
 		.jalE(jalE),				.jrE(jrE),
-        .hilodstE(hilodstE),
+        .regToHilo_hiE(regToHilo_hiE),
+        .regToHilo_loE(regToHilo_loE),
+        .mdToHiloE(mdToHiloE),      .mulOrdivE(mulOrdivE),
         .hilotoregE(hilotoregE),
         .hilosrcE(hilosrcE),
+        .isSignE(isSignE),
 		//[mem stage]
 		//				==input==
 		//				==output=
 		.memtoregM(memtoregM),		.memwriteM(memwriteM),
+        .regToHilo_hiM(regToHilo_hiM),
+        .regToHilo_loM(regToHilo_loM),
+        .mdToHiloM(mdToHiloM),
 		.regwriteM(regwriteM),
         .hilotoregM(hilotoregM),    .hilowriteM(hilowriteM),
         .hilosrcM(hilosrcM),
@@ -82,17 +89,21 @@ module mips(
 		.regdstE(regdstE), 			.regwriteE(regwriteE),
 		.alucontrolE(alucontrolE), 	.balE(balE),
 		.jalE(jalE),
-        .hilodstE(hilodstE),
         .hilotoregE(hilotoregE),
         .hilosrcE(hilosrcE),
+        .mulOrdivE(mulOrdivE),
+        .isSignE(isSignE),          .mdToHiloE(mdToHiloE),
 		//				==output=
-		.flushE(flushE),
+		.flushE(flushE),            .stallE(stallE),
 		//[mem stage]
 		//				==input==
 		.memtoregM(memtoregM), 		.regwriteM(regwriteM),
 		.readdataM(readdataM),
         .hilowriteM(hilowriteM),
         .hilotoregM(hilotoregM),    .hilosrcM(hilosrcM),
+        .regToHilo_hiM(regToHilo_hiM),
+        .regToHilo_loM(regToHilo_loM),
+        .mdToHiloM(mdToHiloM),
 		//				==output=
 		.aluoutM(aluoutM),			.writedataM(writedataM),
 		//[writeBack stage]

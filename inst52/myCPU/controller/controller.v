@@ -10,18 +10,21 @@ module controller(
 	output pcsrcD,branchD,jumpD,jalD,jrD,
 
 	//execute stage
-	input flushE,
+	input flushE,stallE,
 	output memtoregE,alusrcE,
 	output balE,jalE,jrE,
 	output regdstE,regwriteE,
 	output [4:0] alucontrolE,
-    output hilodstE,
+    output regToHilo_hiE,regToHilo_loE,
+    output mdToHiloE,
+    output mulOrdivE,
     output hilotoregE,
     output hilosrcE,
+    output isSignE,
 
 
 	//mem stage
-	output memtoregM,memwriteM,regwriteM,hilowriteM,hilotoregM,hilosrcM,
+	output memtoregM,memwriteM,regwriteM,hilowriteM,regToHilo_hiM,regToHilo_loM,mdToHiloM,hilotoregM,hilosrcM,
 
 	//write back stage
 	output memtoregW,regwriteW,hilotoregW
@@ -30,7 +33,7 @@ module controller(
 
 	//decode stage
 	wire memtoregD,memwriteD,alusrcD,regdstD,regwriteD;
-	wire hilodstD,hilowriteD,hilotoregD,hilosrcD;
+	wire regToHilo_hiD,regToHilo_loD,mdToHiloD,mulOrdivD,hilowriteD,hilotoregD,hilosrcD,isSignD;
 	wire balD;
 	wire[4:0] alucontrolD;
 	//execute stage
@@ -41,18 +44,19 @@ module controller(
 	// [decode -> execute]
 	assign pcsrcD = branchD & validBranchConditionD;
 	// 注意，这里存在flush可能性
-	floprc #(17) regE(
+	floprc #(21) regE(
 		clk, rst,
+        ~stallE,
 		flushE,
-		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD,balD,jalD,jrD,hilodstD,hilowriteD,hilotoregD,hilosrcD},
-		{memtoregE,memwriteE,alusrcE,regdstE,regwriteE,alucontrolE,balE,jalE,jrE,hilodstE,hilowriteE,hilotoregE,hilosrcE}
+		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD,balD,jalD,jrD,regToHilo_hiD,regToHilo_loD,mdToHiloD,mulOrdivD,hilowriteD,hilotoregD,hilosrcD,isSignD},
+		{memtoregE,memwriteE,alusrcE,regdstE,regwriteE,alucontrolE,balE,jalE,jrE,regToHilo_hiE,regToHilo_loE,mdToHiloE,mulOrdivE,hilowriteE,hilotoregE,hilosrcE,isSignE}
 	);
 
 	// [execute -> mem]
-	flopr #(6) regM(
+	flopr #(9) regM(
 		clk,rst,
-		{memtoregE,memwriteE,regwriteE,hilowriteE,hilotoregE,hilosrcE},
-		{memtoregM,memwriteM,regwriteM,hilowriteM,hilotoregM,hilosrcM}
+		{memtoregE,memwriteE,regwriteE,regToHilo_hiE,regToHilo_loE,mdToHiloE,hilowriteE,hilotoregE,hilosrcE},
+		{memtoregM,memwriteM,regwriteM,regToHilo_hiM,regToHilo_loM,mdToHiloM,hilowriteM,hilotoregM,hilosrcM}
 	);
 
 	// [mem -> writeBack]
@@ -85,9 +89,13 @@ module controller(
         .memToReg(memtoregD),
         .jump(jumpD),
         .hilowrite(hilowriteD),
-        .hilodst(hilodstD),
+        .regToHilo_hi(regToHilo_hiD),
+        .regToHilo_lo(regToHilo_loD),
+        .mdToHilo(mdToHiloD),
+        .mulOrdiv(mulOrdivD),
         .hiloToReg(hilotoregD),
-        .hilosrc(hilosrcD)
+        .hilosrc(hilosrcD),
+        .isSign(isSignD)
         //output
 	);
 

@@ -21,7 +21,10 @@ module maindec(
     output reg memToReg,
     output reg jump,
     output reg hilowrite,
-    output reg hilodst,
+    output reg regToHilo_hi,regToHilo_lo,
+    output reg mdToHilo,
+    output reg mulOrdiv,
+    output reg isSign,
     output reg hiloToReg,
     output reg hilosrc
     );
@@ -139,20 +142,61 @@ module maindec(
     always @(*) begin
         case(op)
             `R_TYPE:case(funct)
-                `MTHI,`MTLO:    hilowrite = `SET_ON;
+                `MTHI,`MTLO,`MULT,`MULTU,`DIV,`DIVU:    hilowrite = `SET_ON;
                 default:        hilowrite = `SET_OFF;
             endcase
             default:            hilowrite = `SET_OFF;
         endcase
     end
-    // hilodst - 写HI or LO
+    // regToHilo_hi - 是否将寄存器rs的值写入HI
     always @(*) begin
         case(op)
             `R_TYPE:case(funct)
-                `MTHI:          hilodst =   `SET_ON;
-                default:        hilodst =   `SET_OFF;
+                `MTHI:          regToHilo_hi =   `SET_ON;
+                default:        regToHilo_hi =   `SET_OFF;
             endcase
-            default:            hilowrite = `SET_OFF;
+            default:            regToHilo_hi = `SET_OFF;
+        endcase
+    end
+    // regToHilo_lo - 是否将寄存器rs的值写入LO
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                `MTLO:          regToHilo_lo =   `SET_ON;
+                default:        regToHilo_lo =   `SET_OFF;
+            endcase
+            default:            regToHilo_lo = `SET_OFF;
+        endcase
+    end
+    // mdToHilo - 是否将乘法器/除法器的结果写入hilo_reg
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                `MULT,`MULTU,`DIV,`DIVU: mdToHilo = `SET_ON;
+                default: mdToHilo = `SET_OFF;
+            endcase
+            default: mdToHilo = `SET_OFF;
+        endcase
+    end
+    // mulOrdiv - 写入hilo_reg的是乘法结果还是除法结果
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                `MULT,`MULTU: mulOrdiv = `SET_ON;
+                default: mulOrdiv = `SET_OFF;
+            endcase
+            default: mulOrdiv = `SET_OFF;
+        endcase
+    end
+    // isSign - 判断是否是有符号的算术运算
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                `ADD,`SUB,`MULT,`DIV,`SLT: isSign = 1'b1;
+                default: isSign = 1'b0;
+            endcase
+            `ADDI,`SLTI: isSign = 1'b1;
+            default: isSign = 1'b0;
         endcase
     end
     // hiloToReg - 是否将HI/LO的值写入rd

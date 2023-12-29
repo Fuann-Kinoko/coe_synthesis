@@ -17,15 +17,18 @@ module hazard(
 	input regwriteE,
 	input memtoregE,
     input hilotoregE,hilosrcE,
+    input stall_divE,
 	output [1:0] forwardaE,forwardbE,
 	output flushE,
     output forwardHIE,forwardLOE,
+    output stallE,
 
 	//mem stage
 	input [4:0] writeregM,
 	input regwriteM,
 	input memtoregM,
-    input writehiloM,hilowriteM,
+    input hilowriteM,
+    input regToHilo_hiM,regToHilo_loM,mdToHiloM,
 
 	//write back stage
 	input [4:0] writeregW,
@@ -47,8 +50,8 @@ module hazard(
 
     // 针对数据移动指令（MF、MT）的数据前推
     // E阶段需要读hilo_reg & M阶段hilo_reg需要写的寄存器号与需要前推的E阶段hilo_reg需要读的寄存器号相同 & M阶段hilo_reg的写使能有效
-    assign forwardHIE = ((hilotoregE) & (hilosrcE == writehiloM) & (hilowriteM)) ? 1'b1 : 1'b0;
-    assign forwardLOE = ((hilotoregE) & (hilosrcE == writehiloM) & (hilowriteM)) ? 1'b1 : 1'b0;
+    assign forwardHIE = ((hilotoregE) & (hilosrcE & (regToHilo_hiM | mdToHiloM)) & (hilowriteM)) ? 1'b1 : 1'b0;
+    assign forwardLOE = ((hilotoregE) & (!hilosrcE & (regToHilo_loM | mdToHiloM)) & (hilowriteM)) ? 1'b1 : 1'b0;
 
 	// 			-> 暂停
 	// 假设当前指令是lw，下一条指令刚好需要lw写入的寄存器。当下一条指令执行至EXE阶段时，当前指令
@@ -86,8 +89,9 @@ module hazard(
 
 	// [汇总后产生的stall信号]
 
-	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE;
-	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE;
+	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE;
+	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE;
 	assign flushE = lwstallD | branchstallD | jrstall_READ;
+    assign stallE = stall_divE;
 
 endmodule
