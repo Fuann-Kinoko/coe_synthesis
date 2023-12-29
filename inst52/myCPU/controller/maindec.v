@@ -17,7 +17,7 @@ module maindec(
     output reg bal,
     output reg jal,
     output reg jr,
-    output reg memWrite,
+    output reg [3:0] memWrite,
     output reg memToReg,
     output reg jump,
     output reg hilowrite,
@@ -93,12 +93,12 @@ module maindec(
     always @(*) begin
         case(op)
             `BEQ,       `BNE,
-            `BGTZ,      `BLEZ:          begin branch = `SET_ON; bal = `SET_OFF; end
+            `BGTZ,      `BLEZ:          begin branch = `SET_ON;  bal = `SET_OFF; end
 
             `BG_EXT_INST: begin
                 case(rt)
-                `BGEZ,      `BLTZ:      begin branch = `SET_ON; bal = `SET_OFF; end
-                `BGEZAL,    `BLTZAL:    begin branch = `SET_ON; bal = `SET_ON; end
+                `BGEZ,      `BLTZ:      begin branch = `SET_ON;  bal = `SET_OFF; end
+                `BGEZAL,    `BLTZAL:    begin branch = `SET_ON;  bal = `SET_ON;  end
                 default:                begin branch = `SET_OFF; bal = `SET_OFF; end
                 endcase
             end
@@ -108,9 +108,10 @@ module maindec(
     // memWrite
     always @(*) begin
         case(op)
-            `SW,        `SB,
-            `SH:            memWrite = `SET_ON;
-            default:        memWrite = `SET_OFF;
+            `SW:            memWrite = `memWrite_WORD;
+            `SH:            memWrite = `memWrite_HALF;
+            `SB:            memWrite = `memWrite_BYTE;
+            default:        memWrite = `memWrite_OFF;
         endcase
     end
     // memToReg

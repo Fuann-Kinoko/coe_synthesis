@@ -25,7 +25,8 @@ module controller(
 
 
 	//mem stage
-	output memtoregM,memwriteM,regwriteM,hilowriteM,regToHilo_hiM,regToHilo_loM,mdToHiloM,hilotoregM,hilosrcM,
+	output memtoregM,regwriteM,hilowriteM,regToHilo_hiM,regToHilo_loM,mdToHiloM,hilotoregM,hilosrcM,
+	output [3:0] memwriteM,
 
 	//write back stage
 	output memtoregW,regwriteW,hilotoregW
@@ -33,19 +34,21 @@ module controller(
 );
 
 	//decode stage
-	wire memtoregD,memwriteD,alusrcD,regdstD,regwriteD;
+	wire [3:0] memwriteD;
+	wire memtoregD,alusrcD,regdstD,regwriteD;
 	wire regToHilo_hiD,regToHilo_loD,mdToHiloD,mulOrdivD,hilowriteD,hilotoregD,hilosrcD,mdIsSignD;
 	wire balD;
 	wire[4:0] alucontrolD;
 	//execute stage
-	wire memwriteE,hilowriteE;
+	wire [3:0] memwriteE;
+	wire hilowriteE;
 
 	// 用不到的，就继续传
 
 	// [decode -> execute]
 	assign pcsrcD = branchD & validBranchConditionD;
 	// 注意，这里存在flush可能性
-	flopenrc #(21) regE(
+	flopenrc #(24) regE(
 		clk, rst,
         ~stallE,
 		flushE,
@@ -54,7 +57,7 @@ module controller(
 	);
 
 	// [execute -> mem]
-	flopr #(9) regM(
+	flopr #(12) regM(
 		clk,rst,
 		{memtoregE,memwriteE,regwriteE,regToHilo_hiE,regToHilo_loE,mdToHiloE,hilowriteE,hilotoregE,hilosrcE},
 		{memtoregM,memwriteM,regwriteM,regToHilo_hiM,regToHilo_loM,mdToHiloM,hilowriteM,hilotoregM,hilosrcM}

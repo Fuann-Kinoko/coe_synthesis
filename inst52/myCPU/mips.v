@@ -5,7 +5,7 @@ module mips(
 	input [31:0] instrF,
 	input [31:0] readdataM,
 	output [31:0] pcF,
-	output memwriteM,
+	output [3:0] memwriteM,
 	output [31:0] aluoutM,writedataM
 );
 

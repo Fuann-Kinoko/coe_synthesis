@@ -19,7 +19,7 @@ module mycpu_top(
 // 一个例子
 	wire [31:0] pc;
 	wire [31:0] instr;
-	wire memwrite;
+	wire [3:0] memwrite;
 	wire [31:0] aluout, writedata, readdata;
     mips mips(
         .clk(clk),
@@ -44,7 +44,7 @@ module mycpu_top(
 
     assign data_sram_en = 1'b1;     //如果有data_en，就用data_en
     // TODO: 四个1就写入，是因为现在默认是以一个word为单位。之后要有写入半字等操作，到时候就要修改了
-    assign data_sram_wen = {4{memwrite}};
+    assign data_sram_wen = memwrite;
     assign data_sram_addr = aluout;
     assign data_sram_wdata = writedata;
     assign readdata = data_sram_rdata;
