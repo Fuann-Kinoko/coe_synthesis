@@ -15,7 +15,7 @@ module mips(
 	wire balE,jalE,jrE,regwriteE,regwriteM,regwriteW;
 	wire [4:0] alucontrolE;
 	wire flushE,validBranchConditionD;
-    wire regToHilo_hiE,regToHilo_loE,mdToHiloE,mulOrdivE;
+    wire regToHilo_hiE,regToHilo_loE,mdToHiloE,mulOrdivE,isSignE;
     wire regToHilo_hiM,regToHilo_loM,mdToHiloM;
     wire hilotoregE;
     wire hilotoregM,hilotoregW;
@@ -37,7 +37,7 @@ module mips(
 		.jrD(jrD),
 		//[execute stage]
 		//				==input==
-		.flushE(flushE),
+		.flushE(flushE),            .stallE(stallE),
 			//output
 		.memtoregE(memtoregE), 		.alusrcE(alusrcE),
 		.regdstE(regdstE), 			.regwriteE(regwriteE),
@@ -48,6 +48,7 @@ module mips(
         .mdToHiloE(mdToHiloE),      .mulOrdivE(mulOrdivE),
         .hilotoregE(hilotoregE),
         .hilosrcE(hilosrcE),
+        .isSignE(isSignE),
 		//[mem stage]
 		//				==input==
 		//				==output=
@@ -90,8 +91,9 @@ module mips(
         .hilotoregE(hilotoregE),
         .hilosrcE(hilosrcE),
         .mulOrdivE(mulOrdivE),
+        .isSignE(isSignE),          .mdToHiloE(mdToHiloE),
 		//				==output=
-		.flushE(flushE),
+		.flushE(flushE),            .stallE(stallE),
 		//[mem stage]
 		//				==input==
 		.memtoregM(memtoregM), 		.regwriteM(regwriteM),

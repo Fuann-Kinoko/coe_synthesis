@@ -17,9 +17,11 @@ module hazard(
 	input regwriteE,
 	input memtoregE,
     input hilotoregE,hilosrcE,
+    input stall_divE,
 	output [1:0] forwardaE,forwardbE,
 	output flushE,
     output forwardHIE,forwardLOE,
+    output stallE,
 
 	//mem stage
 	input [4:0] writeregM,
@@ -87,8 +89,9 @@ module hazard(
 
 	// [汇总后产生的stall信号]
 
-	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE;
-	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE;
+	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE;
+	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE;
 	assign flushE = lwstallD | branchstallD | jrstall_READ;
+    assign stallE = stall_divE;
 
 endmodule

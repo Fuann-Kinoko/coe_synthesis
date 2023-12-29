@@ -24,6 +24,7 @@ module maindec(
     output reg regToHilo_hi,regToHilo_lo,
     output reg mdToHilo,
     output reg mulOrdiv,
+    output reg isSign,
     output reg hiloToReg,
     output reg hilosrc
     );
@@ -141,7 +142,7 @@ module maindec(
     always @(*) begin
         case(op)
             `R_TYPE:case(funct)
-                `MTHI,`MTLO:    hilowrite = `SET_ON;
+                `MTHI,`MTLO,`MULT,`MULTU,`DIV,`DIVU:    hilowrite = `SET_ON;
                 default:        hilowrite = `SET_OFF;
             endcase
             default:            hilowrite = `SET_OFF;
@@ -185,6 +186,17 @@ module maindec(
                 default: mulOrdiv = `SET_OFF;
             endcase
             default: mulOrdiv = `SET_OFF;
+        endcase
+    end
+    // isSign - 判断是否是有符号的算术运算
+    always @(*) begin
+        case(op)
+            `R_TYPE:case(funct)
+                `ADD,`SUB,`MULT,`DIV,`SLT: isSign = 1'b1;
+                default: isSign = 1'b0;
+            endcase
+            `ADDI,`SLTI: isSign = 1'b1;
+            default: isSign = 1'b0;
         endcase
     end
     // hiloToReg - 是否将HI/LO的值写入rd

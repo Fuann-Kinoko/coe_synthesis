@@ -19,8 +19,8 @@ module datapath(
 	input [4:0] alucontrolE,
 	input balE, jalE, jrE,
     input hilotoregE, hilosrcE,
-    input mulOrdivE,
-	output flushE,
+    input mulOrdivE,isSignE,mdToHiloE,
+	output flushE,stallE,
 	//mem stage
 	input memtoregM,
 	input regwriteM,
@@ -35,8 +35,8 @@ module datapath(
 );
 
     //测试数据，暂时用于代表乘法结果与除法结果
-    wire [31:0] mulResult_hiE=32'h00000000,mulResult_loE=32'h00000000;//乘法结果
-    wire [31:0] divResult_hiE=32'h00000000,divResult_loE=32'h00000000;//除法结果
+    wire [31:0] mulResult_hiE,mulResult_loE;//乘法结果
+    wire [31:0] divResult_hiE,divResult_loE;//除法结果
 	//fetch stage
 	wire stallF;
 	wire [31:0] pc_plus4F;
@@ -65,6 +65,19 @@ module datapath(
     wire [31:0] HIE,HI2E,LOE,LO2E;
     wire forwardHIE,forwardLOE;
     wire [31:0] mdResult_hiE,mdResult_loE;
+    //除法完成需要36个周期，因此在除法完成前，如若没有强行中断除法运算的特殊情况发生，流水线必须stall
+    //以下是一个简单的状态机，针对的是进行除法运算
+    wire div_readyE;
+    reg start_divE,stall_divE;
+    always @(*)begin
+        case({mdToHiloE,mulOrdivE})
+            2'b10:begin
+                if(div_readyE == 1'b0) begin start_divE = 1'b1;stall_divE = 1'b1; end
+                else if(div_readyE == 1'b1 ) begin start_divE = 1'b0;stall_divE = 1'b0; end
+            end 
+            default: begin start_divE = 1'b0;stall_divE = 1'b0; end
+        endcase
+    end
 
 	//mem stage
 	wire [4:0] writeregM;
@@ -127,16 +140,16 @@ module datapath(
 
 	// [decode -> execute]
 	// 暂存
-	floprc r1E(clk,rst,flushE,srcaD,srcaE);
-	floprc r2E(clk,rst,flushE,srcbD,srcbE);
-	floprc r3E(clk,rst,flushE,signimmD,signimmE);
-	floprc #(5) r4E(clk,rst,flushE,rsD,rsE); // 如果只有暂存，rsD没必要推过去，但rsE对hazard前推有用
-	floprc #(5) r5E(clk,rst,flushE,rtD,rtE);
-	floprc #(5) r6E(clk,rst,flushE,rdD,rdE);
-    floprc #(5) r7E(clk,rst,flushE,saD,saE);
-	floprc #(32) r8E(clk,rst,flushE,pc_plus8D,pc_plus8E);
-    floprc r9E(clk,rst,flushE,HID,HIE);
-    floprc r10E(clk,rst,flushE,LOD,LOE);
+	floprc r1E(clk,rst,~stallE,flushE,srcaD,srcaE);
+	floprc r2E(clk,rst,~stallE,flushE,srcbD,srcbE);
+	floprc r3E(clk,rst,~stallE,flushE,signimmD,signimmE);
+	floprc #(5) r4E(clk,rst,~stallE,flushE,rsD,rsE); // 如果只有暂存，rsD没必要推过去，但rsE对hazard前推有用
+	floprc #(5) r5E(clk,rst,~stallE,flushE,rtD,rtE);
+	floprc #(5) r6E(clk,rst,~stallE,flushE,rdD,rdE);
+    floprc #(5) r7E(clk,rst,~stallE,flushE,saD,saE);
+	floprc #(32) r8E(clk,rst,~stallE,flushE,pc_plus8D,pc_plus8E);
+    floprc r9E(clk,rst,~stallE,flushE,HID,HIE);
+    floprc r10E(clk,rst,~stallE,flushE,LOD,LOE);
 	// 前推
 	mux3 forwardaemux(srcaE,resultW,aluoutM,forwardaE,srca2E);
 	mux3 forwardbemux(srcbE,resultW,aluoutM,forwardbE,srcb2E);
@@ -148,7 +161,7 @@ module datapath(
 	flopr r1M(clk,rst,srcb2E,writedataM);
 	flopr r2M(clk,rst,aluoutE,aluoutM);
 	flopr #(5) r3M(clk,rst,writeregE,writeregM);
-    flopr r5M(clk,rst,srcaE,srcaM);
+    flopr r5M(clk,rst,srca2E,srcaM);
     flopr r6M(clk,rst,HI2E,HIM);
     flopr r7M(clk,rst,LO2E,LOM);
     flopr r8M(clk,rst,mdResult_hiE,mdResult_hiM);
@@ -188,11 +201,13 @@ module datapath(
 		.memtoregE(memtoregE),
         .hilotoregE(hilotoregE),
         .hilosrcE(hilosrcE),
+        .stall_divE(stall_divE),
 		.forwardaE(forwardaE),
 		.forwardbE(forwardbE),
 		.flushE(flushE),
         .forwardHIE(forwardHIE),
         .forwardLOE(forwardLOE),
+        .stallE(stallE),
 		//mem stage
 		.writeregM(writeregM),
 		.regwriteM(regwriteM),
@@ -283,6 +298,10 @@ module datapath(
 	// [Execute] 【特殊情况】如果是BAL或者JAL的操作，pc+8的内容要写入31号寄存器，需要将pc+8作为aluout的结果
 	//					   如果是JALR的操作，同样要写入pc+8
 	mux2 mux_ALUout(aluout_tempE, pc_plus8E, (balE | jalE), aluoutE);
+    // [Execute] 乘法运算
+    mul mul(srca2E,srcb3E,isSignE,mulResult_hiE,mulResult_loE);
+    // [Execute] 除法运算
+    div div(clk,rst,isSignE,srca2E,srcb3E,start_divE,flushE,{divResult_hiE,divResult_loE},div_readyE);
 
     // [Memory] 写hilo_reg
     hilo_reg hilo(clk,rst,hilowriteM,HI2M,LO2M,HID,LOD);
