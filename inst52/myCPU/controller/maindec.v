@@ -17,7 +17,9 @@ module maindec(
     output reg bal,
     output reg jal,
     output reg jr,
-    output reg memWrite,
+    output reg [3:0] memWrite,
+    output reg [3:0] memReadWidth,
+    output reg memLoadIsSign,
     output reg memToReg,
     output reg jump,
     output reg hilowrite,
@@ -93,12 +95,12 @@ module maindec(
     always @(*) begin
         case(op)
             `BEQ,       `BNE,
-            `BGTZ,      `BLEZ:          begin branch = `SET_ON; bal = `SET_OFF; end
+            `BGTZ,      `BLEZ:          begin branch = `SET_ON;  bal = `SET_OFF; end
 
             `BG_EXT_INST: begin
                 case(rt)
-                `BGEZ,      `BLTZ:      begin branch = `SET_ON; bal = `SET_OFF; end
-                `BGEZAL,    `BLTZAL:    begin branch = `SET_ON; bal = `SET_ON; end
+                `BGEZ,      `BLTZ:      begin branch = `SET_ON;  bal = `SET_OFF; end
+                `BGEZAL,    `BLTZAL:    begin branch = `SET_ON;  bal = `SET_ON;  end
                 default:                begin branch = `SET_OFF; bal = `SET_OFF; end
                 endcase
             end
@@ -108,9 +110,28 @@ module maindec(
     // memWrite
     always @(*) begin
         case(op)
-            `SW,        `SB,
-            `SH:            memWrite = `SET_ON;
-            default:        memWrite = `SET_OFF;
+            `SW:            memWrite = `memWrite_WORD;
+            `SH:            memWrite = `memWrite_HALF;
+            `SB:            memWrite = `memWrite_BYTE;
+            default:        memWrite = `memWrite_OFF;
+        endcase
+    end
+    // memReadWidth 决定LW/LH/LB时，读取的数据宽度（注意，读取时memWrite仍然为全0。是读取整字之后再根据宽度取出想要的部分）
+    always @(*) begin
+        case(op)
+            `LW:            memReadWidth = `memReadWidth_WORD;
+            `LH:            memReadWidth = `memReadWidth_HALF;
+            `LHU:           memReadWidth = `memReadWidth_HALF;
+            `LB:            memReadWidth = `memReadWidth_BYTE;
+            `LBU:           memReadWidth = `memReadWidth_BYTE;
+            default:        memReadWidth = `memReadWidth_OFF;
+        endcase
+    end
+    // memLoadIsSign - 判断Load指令是否是有符号的（如LHU和LBU）
+    always @(*) begin
+        case(op)
+            `LBU,       `LHU:     memLoadIsSign = `SET_OFF;
+            default:              memLoadIsSign = `SET_ON;
         endcase
     end
     // memToReg

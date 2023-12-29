@@ -18,3 +18,13 @@
 
 `define mulOrdiv_MUL        1'b1
 `define mulOrdiv_DIV        1'b0
+
+`define memWrite_WORD       4'b1111
+`define memWrite_HALF       4'b0011
+`define memWrite_BYTE       4'b0001
+`define memWrite_OFF        4'b0000
+
+`define memReadWidth_WORD       4'b1111
+`define memReadWidth_HALF       4'b0011
+`define memReadWidth_BYTE       4'b0001
+`define memReadWidth_OFF        4'b0000
