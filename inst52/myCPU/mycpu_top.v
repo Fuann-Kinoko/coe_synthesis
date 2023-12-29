@@ -30,7 +30,7 @@ module mycpu_top(
         .instrF(instr),              //instrF
         //data
         // .data_en(data_en),
-        .memwriteM(memwrite),
+        .memwriteEN(memwrite),
         .aluoutM(aluout),
         .writedataM(writedata),
         .readdataM(readdata)
@@ -43,7 +43,7 @@ module mycpu_top(
     assign instr = inst_sram_rdata;
 
     assign data_sram_en = 1'b1;     //如果有data_en，就用data_en
-    // TODO: 四个1就写入，是因为现在默认是以一个word为单位。之后要有写入半字等操作，到时候就要修改了
+    // 读入时，就算是只读半字，也需要读入整个word（即memwrite的四位都为0），然后再根据类型选择要读的有哪些部分
     assign data_sram_wen = memwrite;
     assign data_sram_addr = aluout;
     assign data_sram_wdata = writedata;

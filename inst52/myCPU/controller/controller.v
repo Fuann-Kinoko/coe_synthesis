@@ -22,25 +22,28 @@ module controller(
     output hilotoregE,
     output hilosrcE,
     output mdIsSignE,
+	output [3:0] memwriteE,
 
 
 	//mem stage
 	output memtoregM,regwriteM,hilowriteM,regToHilo_hiM,regToHilo_loM,mdToHiloM,hilotoregM,hilosrcM,
-	output [3:0] memwriteM,
+	output [3:0] memReadWidthM,
+	output memLoadIsSignM,
 
 	//write back stage
 	output memtoregW,regwriteW,hilotoregW
-
 );
 
 	//decode stage
-	wire [3:0] memwriteD;
+	wire [3:0] memwriteD, memReadWidthD;
+	wire memLoadIsSignD;
 	wire memtoregD,alusrcD,regdstD,regwriteD;
 	wire regToHilo_hiD,regToHilo_loD,mdToHiloD,mulOrdivD,hilowriteD,hilotoregD,hilosrcD,mdIsSignD;
 	wire balD;
 	wire[4:0] alucontrolD;
 	//execute stage
-	wire [3:0] memwriteE;
+	wire [3:0] memReadWidthE;
+	wire memLoadIsSignE;
 	wire hilowriteE;
 
 	// 用不到的，就继续传
@@ -48,19 +51,31 @@ module controller(
 	// [decode -> execute]
 	assign pcsrcD = branchD & validBranchConditionD;
 	// 注意，这里存在flush可能性
-	flopenrc #(24) regE(
+	flopenrc #(29) regE(
 		clk, rst,
         ~stallE,
 		flushE,
-		{memtoregD,memwriteD,alusrcD,regdstD,regwriteD,alucontrolD,balD,jalD,jrD,regToHilo_hiD,regToHilo_loD,mdToHiloD,mulOrdivD,hilowriteD,hilotoregD,hilosrcD,mdIsSignD},
-		{memtoregE,memwriteE,alusrcE,regdstE,regwriteE,alucontrolE,balE,jalE,jrE,regToHilo_hiE,regToHilo_loE,mdToHiloE,mulOrdivE,hilowriteE,hilotoregE,hilosrcE,mdIsSignE}
+		{memtoregD,memwriteD,memReadWidthD,// 9 bit
+		alusrcD,regdstD,regwriteD,alucontrolD,// 17bit
+		balD,jalD,jrD,regToHilo_hiD,regToHilo_loD,mdToHiloD,//23bit
+		mulOrdivD,hilowriteD,hilotoregD,hilosrcD,mdIsSignD,memLoadIsSignD},//29bit
+
+		{memtoregE,memwriteE,memReadWidthE,
+		alusrcE,regdstE,regwriteE,alucontrolE,
+		balE,jalE,jrE,regToHilo_hiE,regToHilo_loE,mdToHiloE,
+		mulOrdivE,hilowriteE,hilotoregE,hilosrcE,mdIsSignE,memLoadIsSignE}
 	);
 
 	// [execute -> mem]
-	flopr #(12) regM(
+	flopr #(13) regM(
 		clk,rst,
-		{memtoregE,memwriteE,regwriteE,regToHilo_hiE,regToHilo_loE,mdToHiloE,hilowriteE,hilotoregE,hilosrcE},
-		{memtoregM,memwriteM,regwriteM,regToHilo_hiM,regToHilo_loM,mdToHiloM,hilowriteM,hilotoregM,hilosrcM}
+		{memtoregE,memReadWidthE,//5bit
+		regwriteE,regToHilo_hiE,regToHilo_loE,mdToHiloE,hilowriteE,hilotoregE,//11bit
+		hilosrcE,memLoadIsSignE},//13bit
+
+		{memtoregM,memReadWidthM,
+		regwriteM,regToHilo_hiM,regToHilo_loM,mdToHiloM,hilowriteM,hilotoregM,
+		hilosrcM,memLoadIsSignM}
 	);
 
 	// [mem -> writeBack]
@@ -90,6 +105,8 @@ module controller(
 		.jal(jalD),
 		.jr(jrD),
         .memWrite(memwriteD),
+		.memReadWidth(memReadWidthD),
+		.memLoadIsSign(memLoadIsSignD),
         .memToReg(memtoregD),
         .jump(jumpD),
         .hilowrite(hilowriteD),
