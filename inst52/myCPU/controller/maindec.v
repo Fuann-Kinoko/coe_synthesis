@@ -28,7 +28,12 @@ module maindec(
     output reg mulOrdiv,
     output reg mdIsSign,
     output reg hiloToReg,
-    output reg hilosrc
+    output reg hilosrc,
+    output reg isWritecp0,
+    output reg [4:0] writecp0Addr,readcp0Addr,
+    output reg cp0ToReg,
+    output reg invalid,
+    output reg jalr
     );
 
     // regwrite
@@ -67,6 +72,11 @@ module maindec(
             `LBU,       `LH,
             `LHU,       `LW:    regwrite = `SET_ON;
 
+            `SPECIAL3_INST:case(rs)
+                `MFC0:          regwrite = `SET_ON;
+                default:        regwrite = `SET_OFF;
+            endcase
+            
             default:            regwrite = `SET_OFF;
         endcase
     end
@@ -143,15 +153,15 @@ module maindec(
             default:        memToReg = `memToReg_ALU;
         endcase
     end
-    // jump && jal && jr
+    // jump && jal && jr && jalr
     always @(*) begin
         case(op)
-            `J:     begin jump = `SET_ON; jal = `SET_OFF; jr = `SET_OFF; end
-            `JAL:   begin jump = `SET_ON; jal = `SET_ON; jr = `SET_OFF; end
+            `J:     begin jump = `SET_ON; jal = `SET_OFF; jr = `SET_OFF; jalr = `SET_OFF; end
+            `JAL:   begin jump = `SET_ON; jal = `SET_ON; jr = `SET_OFF; jalr = `SET_OFF; end
             `R_TYPE: begin
                 case(funct)
-                    `JR:        begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_ON; end
-                    `JALR :     begin jump = `SET_OFF; jal = `SET_ON; jr = `SET_ON; end
+                    `JR:        begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_ON; jalr = `SET_OFF; end
+                    `JALR :     begin jump = `SET_OFF; jal = `SET_ON; jr = `SET_ON; jalr = `SET_ON; end
                     default:    begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_OFF; end
                 endcase
             end
@@ -238,6 +248,77 @@ module maindec(
                 default:        hilosrc = `hilosrc_LO;
             endcase
             default:            hilosrc = `SET_OFF;
+        endcase
+    end
+    // isWritecp0 - 是否写入cp0寄存器，1-写、0-读
+    always @(*) begin
+        case(op)
+            `SPECIAL3_INST:case(rs)
+                `MTC0:          isWritecp0 = `SET_ON;
+                default:        isWritecp0 = `SET_OFF;
+            endcase
+            default:            isWritecp0 = `SET_OFF;
+        endcase
+    end
+    // writecp0Addr - 写CP0寄存器的地址
+    always @(*) begin
+        case(op)
+            `SPECIAL3_INST:case(rs)
+                `MTC0:          writecp0Addr = rd;
+                default:        writecp0Addr = 5'b00000;
+            endcase
+            default:            writecp0Addr = 5'b00000;
+        endcase
+    end
+    // readcp0Addr - 读CP0寄存器的地址
+    always @(*) begin
+        case(op)
+            `SPECIAL3_INST:case(rs)
+                `MFC0:          readcp0Addr = rd;
+                default:        readcp0Addr = 5'b00000;
+            endcase
+            default:            readcp0Addr = 5'b00000;
+        endcase
+    end
+    // cp0ToReg - 是否将cp0寄存器的值写入rt
+    always @(*) begin
+        case(op)
+            `SPECIAL3_INST:case(rs)
+                `MFC0:          cp0ToReg = `SET_ON;
+                default:        cp0ToReg = `SET_OFF;
+            endcase
+            default:            cp0ToReg = `SET_OFF;
+        endcase
+    end
+    // invalid - 标记当前指令是否有效，即是否在已添加的57条指令行列
+    always @(*)begin
+        case(op)
+            `R_TYPE:case(funct)
+                    `ADD,`ADDI,`SUB,`SUBU,
+                    `SLT,`SLTU,`DIV,`DIVU,
+                    `MULT,`MULTU,`AND,`NOR,
+                    `OR,`ORI,`SLLV,`SLL,
+                    `SRAV,`SRA,`SRLV,`SRL,
+                    `JALR,`JR,`MFHI,`MFLO,
+                    `MTLO,`MTHI,`BREAK,`SYSCALL: invalid = 1'b0;
+                    default: invalid = 1'b1;
+                    endcase
+            `BG_EXT_INST:case(rt)
+                         `BLTZAL,`BGEZAL,`BLTZ,`BGEZ: invalid = 1'b0;
+                         default: invalid = 1'b1;
+                         endcase
+            `SPECIAL3_INST:case(rs)
+                           `MFC0,`MTC0: invalid = 1'b0;
+                           default: if({op,rs,rt,rd,5'b00000,funct}==32'b01000010000000000000000000011000) invalid = 1'b0;
+                                    else invalid = 1'b1;
+                           endcase
+            `ADDI,`ADDIU,`SLTI,`SLTIU,
+            `ANDI,`LUI,`ORI,`XORI,
+            `J,`JAL,`BLEZ,`BEQ,
+            `BNE,`BGTZ,`SB,`SH,
+            `SW,`LB,`LBU,`LH,
+            `LHU,`LW: invalid = 1'b0;
+            default: invalid = 1'b1;
         endcase
     end
 

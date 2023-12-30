@@ -18,10 +18,13 @@ module hazard(
 	input memtoregE,
     input hilotoregE,hilosrcE,
     input stall_divE,
+    input cp0ToRegE,
+    input [4:0] readcp0AddrE,
 	output [1:0] forwardaE,forwardbE,
 	output flushE,
     output forwardHIE,forwardLOE,
     output stallE,
+    output forwardCP0E,
 
 	//mem stage
 	input [4:0] writeregM,
@@ -29,6 +32,8 @@ module hazard(
 	input memtoregM,
     input hilowriteM,
     input regToHilo_hiM,regToHilo_loM,mdToHiloM,
+    input isWritecp0M,
+    input [4:0] writecp0AddrM,
 
 	//write back stage
 	input [4:0] writeregW,
@@ -52,6 +57,10 @@ module hazard(
     // E阶段需要读hilo_reg & M阶段hilo_reg需要写的寄存器号与需要前推的E阶段hilo_reg需要读的寄存器号相同 & M阶段hilo_reg的写使能有效
     assign forwardHIE = ((hilotoregE) & (hilosrcE & (regToHilo_hiM | mdToHiloM)) & (hilowriteM)) ? 1'b1 : 1'b0;
     assign forwardLOE = ((hilotoregE) & (!hilosrcE & (regToHilo_loM | mdToHiloM)) & (hilowriteM)) ? 1'b1 : 1'b0;
+
+    // 针对特权指令（MTC0、MFC0）的数据前推
+    // E阶段需要读CP0 & M阶段CP0x需要写的寄存器地址与需要前推的E阶段CP0需要读的寄存器地址一致 & M阶段CP0的写使能有效
+    assign forwardCP0E = ((cp0ToRegE) & (writecp0AddrM == readcp0AddrE) & (isWritecp0M)) ? 1'b1 : 1'b0;
 
 	// 			-> 暂停
 	// 假设当前指令是lw，下一条指令刚好需要lw写入的寄存器。当下一条指令执行至EXE阶段时，当前指令
