@@ -101,6 +101,8 @@ module datapath(
     wire overflowE;
     wire [31:0] cp0_countE,cp0_compareE,cp0_statusE,cp0_causeE,cp0_epcE,cp0_configE,cp0_pridE,cp0_badvaddrE;
     wire cp0_timer_intE;
+    wire isInDelayslotE;
+    assign isInDelayslotE = (branchM | jumpM | jalM | jrM | jalrM);
     wire [31:0] pcE;
 
 	//mem stage
@@ -117,7 +119,6 @@ module datapath(
     wire [31:0] cp0_countM,cp0_compareM,cp0_statusM,cp0_causeM,cp0_epcM,cp0_configM,cp0_pridM,cp0_badvaddrM;
     wire cp0_timer_intM;
     wire isInDelayslotM;
-    assign isInDelayslotM = (branchM | jumpM | jalM | jrM | jalrM);
     wire [31:0] pcM;
     wire [31:0] badAddrM;
     wire [31:0] newPCM;
@@ -231,6 +232,7 @@ module datapath(
     flopr r20M(clk,rst,cp0_badvaddrE,cp0_badvaddrM);
     flopr #(1) r21M(clk,rst,cp0_timer_intE,cp0_timer_intM);
     flopr r22M(clk,rst,pcE,pcM);
+    flopr #(1) r23M(clk,rst,isInDelayslotE,isInDelayslotM);
     // 更新hilo_reg前，确定HI、LO
     mux3 mux_HI2M(HIM,mdResult_hiM,srcaM,{regToHilo_hiM,mdToHiloM},HI2M);
     mux3 mux_LO2M(LOM,mdResult_loM,srcaM,{regToHilo_loM,mdToHiloM},LO2M);
