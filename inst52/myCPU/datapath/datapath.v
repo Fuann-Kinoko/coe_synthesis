@@ -120,6 +120,7 @@ module datapath(
     assign isInDelayslotM = (branchM | jumpM | jalM | jrM | jalrM);
     wire [31:0] pcM;
     wire [31:0] badAddrM;
+    wire [31:0] newPCM;
 
 	//writeback stage
 	wire [4:0] writeregW;
@@ -299,6 +300,9 @@ module datapath(
         .mdToHiloM(mdToHiloM),
         .isWritecp0M(isWritecp0M),
         .writecp0AddrM(writecp0AddrM),
+        .except_typeM(except_typeM),
+        .cp0_epcM(cp0_epcM),
+        .newPCM(newPCM),
 		//write back stage
 		.writeregW(writeregW),
 		.regwriteW(regwriteW)
@@ -350,7 +354,11 @@ module datapath(
 	// [Decode] 【特殊情况】如果是JR或者JALR，那么无条件跳转的值为寄存器rs中的值
 	wire [31:0] pc_jr = srca2D;
 	// assign pc_next_addr = pc_afterjumpD;
-	mux2 mux_is_jr(pc_afterjumpD,pc_jr,jrD,pc_next_addr);
+	// mux2 mux_is_jr(pc_afterjumpD,pc_jr,jrD,pc_next_addr);
+    //由于现在可能会出现例外情况，因此pc_next_addr的选择又多了一项例外返回地址newPCM选项,且如若有例外出现，则newPCM优先
+    assign pc_next_addr = (checkExceptionM != 32'h00000000) ? newPCM : 
+                          (jrD)                             ? pc_jr  :
+                          pc_afterjumpD;
 
 
     // ====================================
@@ -377,7 +385,7 @@ module datapath(
     // [Execute] 判断ALU收到的srcB是RD2还是SignImm
 	mux2 mux_ALUsrc(srcb2E,signimmE,alusrcE,srcb3E);
     // [Execute] ALU运算，控制冒险提前判断了branch，不再需要zero
-	alu alu(srca2E,srcb3E,saE,alucontrolE,aluout_tempE,overflowE);
+	alu alu(srca2E,srcb3E,saE,alucontrolE,mdToHiloE,aluout_tempE,overflowE);
 	// [Execute] 【特殊情况】如果是BAL或者JAL的操作，pc+8的内容要写入31号寄存器，需要将pc+8作为aluout的结果
 	//					   如果是JALR的操作，同样要写入pc+8
 	mux2 mux_ALUout(aluout_tempE, pc_plus8E, (balE | jalE), aluoutE);
@@ -394,8 +402,8 @@ module datapath(
 	memwrite_extend memwrite_extend(writedataM, memwriteM, writedataExtendedM);
 	// [Memory] 在向内存写入之前，如果是SW指令还需要进行写入地址的选择
 	memwrite_filter memwrite_filter(aluoutM,memwriteM,memwrite_filterdM);
-    // [Memory] 得到当前优先级最高的例外类型
-    except_type except_type(rst,checkExceptionM,cp0_statusM,cp0_causeM,except_typeM);
+    // [Memory] 得到当前（优先级最高）的例外类型
+    exception_type exception_type(rst,checkExceptionM,cp0_statusM,cp0_causeM,except_typeM);
     // [Memory] 决定 写入cp0的错误地址 是指令地址pcM 还是数据地址 aluoutM(注: 这里指令地址错误的优先级高于数据地址错误)
     mux2 mux_badAddr(aluoutM,pcM,checkExceptionM[7],badAddrM);
     // [Memory] 写cp0
@@ -404,7 +412,7 @@ module datapath(
     // [WriteBack] 判断写回寄存器堆的是：从ALU出来的结果（可能被BAL、JAL或JALR覆盖） or 从数据存储器读取的data or HI/LO寄存器的数据 or CP0寄存器的数据
 	// mux2 mux_regwriteData(aluoutW,readdataW,memtoregW,resultW);
     // mux3 mux_regwriteData(aluoutW,readdataW,hilooutW,{hilotoregW,memtoregW},resultW);
-    mux4 mux_regwriteData(aluoutW,readdataW,hilooutW,cp0_dataW,{cp0ToRegW,hilotoRegW,memtoregW},resultW);
+    mux4 mux_regwriteData(aluoutW,readdataW,hilooutW,cp0_dataW,{cp0ToRegW,hilotoregW,memtoregW},resultW);
 
 	// [WriteBack] 对于从内存中读出的数据，如果是Load指令（尤其是LH,LB），需要进行数据选择以及扩展
 	// 传出来的result_load_filterd即是LW/LH/lB最终的写回数据

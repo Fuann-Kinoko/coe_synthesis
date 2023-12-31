@@ -294,10 +294,10 @@ module maindec(
     always @(*)begin
         case(op)
             `R_TYPE:case(funct)
-                    `ADD,`ADDI,`SUB,`SUBU,
+                    `ADD,`ADDU,`SUB,`SUBU,
                     `SLT,`SLTU,`DIV,`DIVU,
                     `MULT,`MULTU,`AND,`NOR,
-                    `OR,`ORI,`SLLV,`SLL,
+                    `OR,`XOR,`SLLV,`SLL,
                     `SRAV,`SRA,`SRLV,`SRL,
                     `JALR,`JR,`MFHI,`MFLO,
                     `MTLO,`MTHI,`BREAK,`SYSCALL: invalid = 1'b0;

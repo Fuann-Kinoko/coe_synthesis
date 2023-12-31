@@ -6,6 +6,7 @@ module alu(
     input [31:0]num2,
     input [4:0]sa,
     input [4:0]op,
+    input mdToHilo,
     output reg [31:0]result,
     output reg overflow //只考虑ADD、ADDI、SUB三条有符号算术运算指令的溢出
     );
@@ -18,12 +19,12 @@ module alu(
             `ADD_CONTROL: begin
                 result = num1 + num2;
                 temp = {num1[31],num1} + {num2[31],num2};
-                overflow = (temp[32]!=temp[31]);
+                overflow = (mdToHilo == 1'b0) ? (temp[32]!=temp[31]) : 1'b0;
             end
             `SUB_CONTROL: begin
                 result = num1 - num2;
                 temp = {num1[31],num1} - {num2[31],num2};
-                overflow = (temp[32]!=temp[31]);
+                overflow = (mdToHilo == 1'b0) ? (temp[32]!=temp[31]) : 1'b0;
             end
             `ADDU_CONTROL: begin
                 result = num1 + num2;

@@ -34,6 +34,8 @@ module hazard(
     input regToHilo_hiM,regToHilo_loM,mdToHiloM,
     input isWritecp0M,
     input [4:0] writecp0AddrM,
+    input [31:0] except_typeM,cp0_epcM,
+    output reg [31:0] newPCM,
 
 	//write back stage
 	input [4:0] writeregW,
@@ -103,4 +105,19 @@ module hazard(
 	assign flushE = lwstallD | branchstallD | jrstall_READ;
     assign stallE = stall_divE;
 
+    // 根据当前得到的例外类型跳转到例外处理程序入口（除了ERET外，都统一跳到0xBFC00380）
+    always @(*) begin
+        if(except_typeM != 32'b0) begin
+            case(except_typeM)
+                32'h00000001:begin newPCM <= 32'hBFC00380; end
+                32'h00000004:begin newPCM <= 32'hBFC00380; end
+                32'h00000005:begin newPCM <= 32'hBFC00380; end
+                32'h00000008:begin newPCM <= 32'hBFC00380; end
+                32'h00000009:begin newPCM <= 32'hBFC00380; end
+                32'h0000000a:begin newPCM <= 32'hBFC00380; end
+                32'h0000000c:begin newPCM <= 32'hBFC00380; end
+                32'h0000000e:begin newPCM <= cp0_epcM; end
+            endcase
+        end
+    end
 endmodule
