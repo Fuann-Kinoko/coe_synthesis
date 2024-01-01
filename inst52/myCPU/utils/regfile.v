@@ -23,7 +23,7 @@
 module regfile(
 	input wire clk,
 	input wire rst,
-	input wire we3,
+	input wire [3:0] we3,
 	input wire[4:0] ra1,ra2,wa3,
 	input wire[31:0] wd3,
 	output wire[31:0] rd1,rd2
@@ -40,7 +40,7 @@ module regfile(
 	end
 
 	always @(negedge clk) begin
-		if(we3) begin
+		if(we3 == 4'b1111) begin
 			rf[wa3] <= wd3;
 		end
 	end

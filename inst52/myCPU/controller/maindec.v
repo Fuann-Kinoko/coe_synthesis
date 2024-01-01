@@ -10,7 +10,7 @@ module maindec(
     input [4:0] rt,
     input [4:0] rd,
     input [5:0] funct,
-    output reg regwrite,
+    output reg [3:0] regwrite,
     output reg regdst,
     output reg alusrc,
     output reg branch,
@@ -33,7 +33,8 @@ module maindec(
     output reg [4:0] writecp0Addr,readcp0Addr,
     output reg cp0ToReg,
     output reg ex_ri, ex_bp, ex_sys,
-    output reg jalr
+    output reg jalr,
+    output reg data_sram_en
     );
 
     // regwrite
@@ -50,8 +51,8 @@ module maindec(
                     `SRAV,      `SRA,
                     `SRLV,      `SRL,
                     `JALR,      `MFHI,
-                    `MFLO:      regwrite = `SET_ON;
-                    default:    regwrite = `SET_OFF;
+                    `MFLO:      regwrite = 4'b1111;
+                    default:    regwrite = 4'b0000;
                 endcase
             end
 
@@ -338,6 +339,13 @@ module maindec(
             `LHU,   `LW
                     : ex_ri = 1'b0;
             default : ex_ri = 1'b1;
+        endcase
+    end
+    // data_sram_en - 数据存储器的使能信号
+    always @(*) begin
+        case(op)
+            `SW,`SH,`SB,`LW,`LH,`LHU,`LB,`LBU: data_sram_en = 1'b1;
+            default: data_sram_en = 1'b0;
         endcase
     end
 endmodule
