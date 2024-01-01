@@ -28,7 +28,12 @@ module maindec(
     output reg mulOrdiv,
     output reg mdIsSign,
     output reg hiloToReg,
-    output reg hilosrc
+    output reg hilosrc,
+    output reg isWritecp0,
+    output reg [4:0] writecp0Addr,readcp0Addr,
+    output reg cp0ToReg,
+    output reg ex_ri, ex_bp, ex_sys,
+    output reg jalr
     );
 
     // regwrite
@@ -66,6 +71,11 @@ module maindec(
             `JAL,       `LB,
             `LBU,       `LH,
             `LHU,       `LW:    regwrite = `SET_ON;
+
+            `SPECIAL3_INST:case(rs)
+                `MFC0:          regwrite = `SET_ON;
+                default:        regwrite = `SET_OFF;
+            endcase
 
             default:            regwrite = `SET_OFF;
         endcase
@@ -143,15 +153,15 @@ module maindec(
             default:        memToReg = `memToReg_ALU;
         endcase
     end
-    // jump && jal && jr
+    // jump && jal && jr && jalr
     always @(*) begin
         case(op)
-            `J:     begin jump = `SET_ON; jal = `SET_OFF; jr = `SET_OFF; end
-            `JAL:   begin jump = `SET_ON; jal = `SET_ON; jr = `SET_OFF; end
+            `J:     begin jump = `SET_ON; jal = `SET_OFF; jr = `SET_OFF; jalr = `SET_OFF; end
+            `JAL:   begin jump = `SET_ON; jal = `SET_ON; jr = `SET_OFF; jalr = `SET_OFF; end
             `R_TYPE: begin
                 case(funct)
-                    `JR:        begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_ON; end
-                    `JALR :     begin jump = `SET_OFF; jal = `SET_ON; jr = `SET_ON; end
+                    `JR:        begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_ON; jalr = `SET_OFF; end
+                    `JALR :     begin jump = `SET_OFF; jal = `SET_ON; jr = `SET_ON; jalr = `SET_ON; end
                     default:    begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_OFF; end
                 endcase
             end
@@ -241,37 +251,93 @@ module maindec(
         endcase
     end
 
-    // //顺序按表5
-    // always@(*)begin
-    //     case(op)
-    //         6'b000000:begin     //R-type
-    //             {regwrite,regdst,alusrc,branch,memWrite,memToReg,jump}=7'b1100000;
-    //             aluop=2'b10;
-    //         end
-    //         6'b100011:begin     //lw
-    //             {regwrite,regdst,alusrc,branch,memWrite,memToReg,jump}=7'b1010010;
-    //             aluop=2'b00;
-    //         end
-    //         6'b101011:begin     //sw
-    //             {regwrite,regdst,alusrc,branch,memWrite,memToReg,jump}=7'b0010100;
-    //             aluop=2'b00;
-    //         end
-    //         6'b000100:begin     //beq
-    //             {regwrite,regdst,alusrc,branch,memWrite,memToReg,jump}=7'b0001000;
-    //             aluop=2'b01;
-    //         end
-    //         6'b001000:begin     //I-type
-    //             {regwrite,regdst,alusrc,branch,memWrite,memToReg,jump}=7'b1010000;
-    //             aluop=2'b00;
-    //         end
-    //         6'b000010:begin     //jump
-    //             {regwrite,regdst,alusrc,branch,memWrite,memToReg,jump}=7'b0000001;
-    //             aluop=2'b00;
-    //         end
-    //         default:begin
-    //             {regwrite,regdst,alusrc,branch,memWrite,memToReg,jump}=7'd0;
-    //             aluop=2'b00;
-    //         end
-    //     endcase
-    // end
+
+    // ========================== 特权指令 ==========================
+    // break -> ex_bp
+    always @(*) begin
+        if(op == `R_TYPE && funct == `BREAK) ex_bp = `SET_ON;
+        else                                 ex_bp = `SET_OFF;
+    end
+    // syscall -> ex_sys
+    always @(*) begin
+        if(op == `R_TYPE && funct == `SYSCALL) ex_sys = `SET_ON;
+        else                                   ex_sys = `SET_OFF;
+    end
+    // isWritecp0 - 是否写入cp0寄存器，1-写、0-读
+    always @(*) begin
+        case(op)
+            `SPECIAL3_INST:case(rs)
+                `MTC0:          isWritecp0 = `SET_ON;
+                default:        isWritecp0 = `SET_OFF;
+            endcase
+            default:            isWritecp0 = `SET_OFF;
+        endcase
+    end
+    // writecp0Addr - 写CP0寄存器的地址
+    always @(*) begin
+        case(op)
+            `SPECIAL3_INST:case(rs)
+                `MTC0:          writecp0Addr = rd;
+                default:        writecp0Addr = 5'b00000;
+            endcase
+            default:            writecp0Addr = 5'b00000;
+        endcase
+    end
+    // readcp0Addr - 读CP0寄存器的地址
+    always @(*) begin
+        case(op)
+            `SPECIAL3_INST:case(rs)
+                `MFC0:          readcp0Addr = rd;
+                default:        readcp0Addr = 5'b00000;
+            endcase
+            default:            readcp0Addr = 5'b00000;
+        endcase
+    end
+    // cp0ToReg - 是否将cp0寄存器的值写入rt
+    always @(*) begin
+        case(op)
+            `SPECIAL3_INST:case(rs)
+                `MFC0:          cp0ToReg = `SET_ON;
+                default:        cp0ToReg = `SET_OFF;
+            endcase
+            default:            cp0ToReg = `SET_OFF;
+        endcase
+    end
+    // ex_ri - 标记当前指令是否有效，即是否在已添加的57条指令行列
+    always @(*)begin
+        case(op)
+            `R_TYPE:case(funct)
+                `ADD,   `ADDU,  `SUB,   `SUBU,
+                `SLT,   `SLTU,  `DIV,   `DIVU,
+                `MULT,  `MULTU, `AND,   `NOR,
+                `OR,    `XOR,   `SLLV,  `SLL,
+                `SRAV,  `SRA,   `SRLV,  `SRL,
+                `JALR,  `JR,    `MFHI,  `MFLO,
+                `MTLO,  `MTHI,  `BREAK, `SYSCALL
+                        : ex_ri = 1'b0;
+                default : ex_ri = 1'b1;
+            endcase
+            `BG_EXT_INST:case(rt)
+                `BLTZAL, `BGEZAL, `BLTZ, `BGEZ
+                        : ex_ri = 1'b0;
+                default : ex_ri = 1'b1;
+            endcase
+            `SPECIAL3_INST:case(rs)
+                `MFC0, `MTC0: ex_ri = 1'b0;
+                default: begin
+                    if({op, rs, rt, rd, 5'b00000, funct}==32'b01000010000000000000000000011000)
+                            ex_ri = 1'b0;
+                    else    ex_ri = 1'b1;
+                end
+            endcase
+            `ADDI,  `ADDIU, `SLTI,  `SLTIU,
+            `ANDI,  `LUI,   `ORI,   `XORI,
+            `J,     `JAL,   `BLEZ,  `BEQ,
+            `BNE,   `BGTZ,  `SB,    `SH,
+            `SW,    `LB,    `LBU,   `LH,
+            `LHU,   `LW
+                    : ex_ri = 1'b0;
+            default : ex_ri = 1'b1;
+        endcase
+    end
 endmodule

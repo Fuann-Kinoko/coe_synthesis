@@ -22,9 +22,14 @@ module mips(
     wire hilotoregM,hilotoregW;
 	wire hilowriteM,hilosrcM;
     wire hilosrcE;
+    wire isWritecp0E,isWritecp0M;
 	wire [3:0] memwriteE;
+    wire [4:0] writecp0AddrE,writecp0AddrM,readcp0AddrE;
 	wire [3:0] memReadWidthM;
 	wire memLoadIsSignM;
+    wire cp0ToRegE,cp0ToRegM,cp0ToRegW;
+    wire branchE,branchM,jumpE,jumpM,jalM,jrM,jalrE,jalrM;
+	wire ex_bpD, ex_sysD, ex_riD;
 
 	controller c(
 		.clk(clk), .rst(rst),
@@ -40,7 +45,8 @@ module mips(
 		//				==output=
 		.pcsrcD(pcsrcD),			.branchD(branchD),
 		.jumpD(jumpD),				.jalD(jalD),
-		.jrD(jrD),
+		.jrD(jrD),                  .ex_riD(ex_riD),
+		.ex_bpD(ex_bpD),			.ex_sysD(ex_sysD),
 		//[execute stage]
 		//				==input==
 		.flushE(flushE),            .stallE(stallE),
@@ -55,6 +61,10 @@ module mips(
         .hilotoregE(hilotoregE),
         .hilosrcE(hilosrcE),
         .mdIsSignE(mdIsSignE),
+        .isWritecp0E(isWritecp0E),  .writecp0AddrE(writecp0AddrE),
+        .readcp0AddrE(readcp0AddrE),.cp0ToRegE(cp0ToRegE),
+        .branchE(branchE),          .jumpE(jumpE),
+        .jalrE(jalrE),
 		//[mem stage]
 		//				==input==
 		//				==output=
@@ -66,11 +76,15 @@ module mips(
         .hilotoregM(hilotoregM),    .hilowriteM(hilowriteM),
         .hilosrcM(hilosrcM), 		.memReadWidthM(memReadWidthM),
 		.memLoadIsSignM(memLoadIsSignM),
+        .isWritecp0M(isWritecp0M),  .writecp0AddrM(writecp0AddrM),
+        .cp0ToRegM(cp0ToRegM),      .branchM(branchM),
+        .jumpM(jumpM),              .jalM(jalM),
+        .jrM(jrM),                  .jalrM(jalrM),
 		//[writeBack stage]
 		//				==input==
 		//				==output=
 		.memtoregW(memtoregW),		.regwriteW(regwriteW),
-        .hilotoregW(hilotoregW)
+        .hilotoregW(hilotoregW),    .cp0ToRegW(cp0ToRegW)
 	);
 
 	datapath dp(
@@ -84,7 +98,8 @@ module mips(
 		//				==input==
 		.pcsrcD(pcsrcD),			.branchD(branchD),
 		.jumpD(jumpD),				.jalD(jalD),
-		.jrD(jrD),					.jrE(jrE),
+		.jrD(jrD),					.ex_riD(ex_riD),
+		.ex_bpD(ex_bpD),			.ex_sysD(ex_sysD),
 		//				==output=
 		.validBranchConditionD(validBranchConditionD), 			.opD(opD),
 		.rsD(rsD),				.rtD(rtD),
@@ -94,12 +109,17 @@ module mips(
 		.memtoregE(memtoregE),		.alusrcE(alusrcE),
 		.regdstE(regdstE), 			.regwriteE(regwriteE),
 		.alucontrolE(alucontrolE), 	.balE(balE),
-		.jalE(jalE),
+		.jalE(jalE),                .jrE(jrE),
         .hilotoregE(hilotoregE),
         .hilosrcE(hilosrcE),
         .mulOrdivE(mulOrdivE),
         .mdIsSignE(mdIsSignE),          .mdToHiloE(mdToHiloE),
 		.memwriteE(memwriteE),
+        .isWritecp0E(isWritecp0E),  .writecp0AddrE(writecp0AddrE),
+        .readcp0AddrE(readcp0AddrE),.cp0ToRegE(cp0ToRegE),
+        .branchE(branchE),          .jumpE(jumpE),
+        .jalrE(jalrE),
+
 		//				==output=
 		.flushE(flushE),            .stallE(stallE),
 		//[mem stage]
@@ -112,13 +132,17 @@ module mips(
         .regToHilo_loM(regToHilo_loM),
         .mdToHiloM(mdToHiloM),		.memReadWidthM(memReadWidthM),
 		.memLoadIsSignM(memLoadIsSignM),
+        .isWritecp0M(isWritecp0M),  .writecp0AddrM(writecp0AddrM),
+        .cp0ToRegM(cp0ToRegM),      .branchM(branchM),
+        .jumpM(jumpM),              .jalM(jalM),
+        .jrM(jrM),                  .jalrM(jalrM),
 		//				==output=
 		.aluoutM(aluoutM),			.writedataExtendedM(writedataM),
 		.memwrite_filterdM(memwriteEN),
 		//[writeBack stage]
 		//				==input==
 		.memtoregW(memtoregW), 		.regwriteW(regwriteW),
-        .hilotoregW(hilotoregW)
+        .hilotoregW(hilotoregW),    .cp0ToRegW(cp0ToRegW)
 		//				==output=
 	);
 

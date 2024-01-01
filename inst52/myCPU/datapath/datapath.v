@@ -1,4 +1,5 @@
 `include "../utils/defines2.vh"
+`include "../utils/control_signal_define.vh"
 `timescale 1ns / 1ps
 
 module datapath(
@@ -9,6 +10,7 @@ module datapath(
 	//decode stage
 	input pcsrcD,branchD,
 	input jumpD,jalD,jrD,
+	input ex_bpD, ex_sysD, ex_riD,
 	output reg validBranchConditionD,
 	output [4:0] rsD,rtD,rdD,
 	output [5:0] opD,functD,
@@ -21,6 +23,10 @@ module datapath(
     input hilotoregE, hilosrcE,
     input mulOrdivE,mdIsSignE,mdToHiloE,
 	input [3:0] memwriteE,
+    input isWritecp0E,
+    input [4:0] writecp0AddrE,readcp0AddrE,
+    input cp0ToRegE,
+    input branchE,jumpE,jalrE,
 	output flushE,stallE,
 	//mem stage
 	input memtoregM,
@@ -30,12 +36,17 @@ module datapath(
     input regToHilo_hiM,regToHilo_loM,mdToHiloM,
 	input [3:0] memReadWidthM,
 	input memLoadIsSignM,
+    input isWritecp0M,
+    input [4:0] writecp0AddrM,
+    input cp0ToRegM,
+    input branchM,jumpM,jalM,jrM,jalrM,
 	output [31:0] aluoutM,writedataExtendedM,
 	output [3:0] memwrite_filterdM,
 	//writeback stage
 	input memtoregW,
 	input regwriteW,
-    input hilotoregW
+    input hilotoregW,
+    input cp0ToRegW
 );
 
     //测试数据，暂时用于代表乘法结果与除法结果
@@ -44,6 +55,7 @@ module datapath(
 	//fetch stage
 	wire stallF;
 	wire [31:0] pc_plus4F;
+	wire [7:0] checkExceptionF;
 
 	//decode stage
 	wire [31:0] pc_afterjumpD,pc_afterbranchD,pc_branch_offsetD;
@@ -55,6 +67,8 @@ module datapath(
 	wire [31:0] srcaD,srca2D,srcbD,srcb2D,srca3D,srcb3D;
     wire [4:0] saD;
     wire [31:0] HID,LOD;
+    wire [31:0] pcD;
+	wire [7:0] checkExceptionD;
 
 	//execute stage
 	wire [1:0] forwardaE,forwardbE;
@@ -68,28 +82,36 @@ module datapath(
     wire [31:0] HIE,HI2E,LOE,LO2E;
     wire forwardHIE,forwardLOE;
     wire [31:0] mdResult_hiE,mdResult_loE;
-    //除法完成需要36个周期，因此在除法完成前，如若没有强行中断除法运算的特殊情况发生，流水线必须stall
-    //以下是一个简单的状态机，针对的是进行除法运算
+
+	wire [7:0] checkExceptionE;
+    wire [31:0] cp0_dataE,cp0_data2E;
+    wire forwardCP0E;
     wire div_readyE;
     reg start_divE,stall_divE;
-    always @(*)begin
-        case({mdToHiloE,mulOrdivE})
-            2'b10:begin
-                if(div_readyE == 1'b0) begin start_divE = 1'b1;stall_divE = 1'b1; end
-                else if(div_readyE == 1'b1 ) begin start_divE = 1'b0;stall_divE = 1'b0; end
-            end
-            default: begin start_divE = 1'b0;stall_divE = 1'b0; end
-        endcase
-    end
+    wire ex_ovE;
+    wire [31:0] cp0_countE,cp0_compareE,cp0_statusE,cp0_causeE,cp0_epcE,cp0_configE,cp0_pridE,cp0_badvaddrE;
+    wire cp0_timer_intE;
+    wire isInDelayslotE;
+    assign isInDelayslotE = (branchM | jumpM | jalM | jrM | jalrM);
+    wire [31:0] pcE;
 
 	//mem stage
 	wire [4:0] writeregM;
-    wire [31:0] srcaM;
+    wire [31:0] srcaM,srcbM;
     wire [31:0] HIM,HI2M,LOM,LO2M;
     wire [31:0] hilooutM;
     wire [31:0] mdResult_hiM,mdResult_loM;
 	wire [31:0] writedataM;
 	wire [3:0] memwriteM;
+    wire [31:0] cp0_dataM;
+    wire [31:0] except_typeM;
+    wire [31:0] cp0_countM,cp0_compareM,cp0_statusM,cp0_causeM,cp0_epcM,cp0_configM,cp0_pridM,cp0_badvaddrM;
+    wire cp0_timer_intM;
+    wire isInDelayslotM;
+    wire [31:0] pcM;
+    wire [31:0] badAddrM;
+    wire [31:0] newPCM;
+	wire [7:0] checkExceptionM;
 
 	//writeback stage
 	wire [4:0] writeregW;
@@ -97,6 +119,7 @@ module datapath(
 	wire [31:0] result_filterdW;
 	wire [3:0] memReadWidthW;
 	wire memLoadIsSignW;
+    wire [31:0] cp0_dataW;
 
 
 
@@ -111,6 +134,8 @@ module datapath(
 	// 暂存
 	flopenr r1D(clk,rst,~stallD,pc_plus4F,pc_plus4D);
 	flopenr r2D(clk,rst,~stallD,instrF,instrD);
+    flopenr r4D(clk,rst,~stallD,pcF,pcD);
+    flopenr #(8) exceptionF2D(clk,rst,~stallD,{checkExceptionF[7],7'd0},checkExceptionD);
 	// 前推
 	mux2 forwardamux(srcaD,aluoutM,forwardaD,srca2D);
 	mux2 forwardbmux(srcbD,aluoutM,forwardbD,srcb2D);
@@ -125,9 +150,9 @@ module datapath(
 	assign rtD = instrD[20:16];
 	assign rdD = instrD[15:11];
     assign saD = instrD[10:6];
+
 	// 提前在decode判断branch
 	// 根据指令不同，判断是否valid的格式也不同
-
 	always @(*) begin
 		case(opD)
 			`BEQ: validBranchConditionD = (srca3D == srcb3D);
@@ -158,11 +183,14 @@ module datapath(
 	flopenrc #(32) r8E(clk,rst,~stallE,flushE,pc_plus8D,pc_plus8E);
     flopenrc r9E(clk,rst,~stallE,flushE,HID,HIE);
     flopenrc r10E(clk,rst,~stallE,flushE,LOD,LOE);
+    flopenrc r12E(clk,rst,~stallE,flushE,pcD,pcE);
+    flopenrc #(8) exceptionD2E(clk,rst,~stallE,flushE,{checkExceptionD[7:3],3'b000},checkExceptionE);
 	// 前推
 	mux3 forwardaemux(srcaE,result_filterdW,aluoutM,forwardaE,srca2E);
 	mux3 forwardbemux(srcbE,result_filterdW,aluoutM,forwardbE,srcb2E);
     mux2 forwardHIEmux(HIE,HI2M,forwardHIE,HI2E);
     mux2 forwardLOEmux(LOE,LO2M,forwardLOE,LO2E);
+    mux2 forwardCP0Emux(cp0_dataE,srcbM,forwardCP0E,cp0_data2E);
 
 	// [execute -> mem]
 	// 暂存
@@ -175,9 +203,23 @@ module datapath(
     flopr r8M(clk,rst,mdResult_hiE,mdResult_hiM);
     flopr r9M(clk,rst,mdResult_loE,mdResult_loM);
 	flopr #(4) r10M(clk,rst,memwriteE,memwriteM);
+    flopr r11M(clk,rst,srcb3E,srcbM);
+    flopr r12M(clk,rst,cp0_data2E,cp0_dataM);
+    flopr r14M(clk,rst,cp0_countE,cp0_countM);
+    flopr r15M(clk,rst,cp0_compareE,cp0_compareM);
+    flopr r16M(clk,rst,cp0_statusE,cp0_causeM);
+    flopr r17M(clk,rst,cp0_causeE,cp0_causeM);
+    flopr r18M(clk,rst,cp0_epcE,cp0_epcM);
+    flopr r19M(clk,rst,cp0_configE,cp0_configM);
+    flopr r20M(clk,rst,cp0_badvaddrE,cp0_badvaddrM);
+    flopr #(1) r21M(clk,rst,cp0_timer_intE,cp0_timer_intM);
+    flopr r22M(clk,rst,pcE,pcM);
+    flopr #(1) r23M(clk,rst,isInDelayslotE,isInDelayslotM);
+    flopr #(8) exceptionE2M(clk,rst,{checkExceptionE[7:2],2'b00},checkExceptionM);
     // 更新hilo_reg前，确定HI、LO
     mux3 mux_HI2M(HIM,mdResult_hiM,srcaM,{regToHilo_hiM,mdToHiloM},HI2M);
     mux3 mux_LO2M(LOM,mdResult_loM,srcaM,{regToHilo_loM,mdToHiloM},LO2M);
+
 
 	// [mem -> writeBack]
 	// 暂存
@@ -187,6 +229,7 @@ module datapath(
     flopr r4W(clk,rst,hilooutM,hilooutW);
 	flopr #(4) r5W(clk,rst,memReadWidthM,memReadWidthW);
 	flopr #(1) r6W(clk,rst,memLoadIsSignM,memLoadIsSignW);
+    flopr r7W(clk,rst,cp0_dataM,cp0_dataW);
 
 
 	// =============================
@@ -213,12 +256,15 @@ module datapath(
         .hilotoregE(hilotoregE),
         .hilosrcE(hilosrcE),
         .stall_divE(stall_divE),
+        .cp0ToRegE(cp0ToRegE),
+        .readcp0AddrE(readcp0AddrE),
 		.forwardaE(forwardaE),
 		.forwardbE(forwardbE),
 		.flushE(flushE),
         .forwardHIE(forwardHIE),
         .forwardLOE(forwardLOE),
         .stallE(stallE),
+        .forwardCP0E(forwardCP0E),
 		//mem stage
 		.writeregM(writeregM),
 		.regwriteM(regwriteM),
@@ -227,6 +273,11 @@ module datapath(
         .regToHilo_hiM(regToHilo_hiM),
         .regToHilo_loM(regToHilo_loM),
         .mdToHiloM(mdToHiloM),
+        .isWritecp0M(isWritecp0M),
+        .writecp0AddrM(writecp0AddrM),
+        .except_typeM(except_typeM),
+        .cp0_epcM(cp0_epcM),
+        .newPCM(newPCM),
 		//write back stage
 		.writeregW(writeregW),
 		.regwriteW(regwriteW)
@@ -250,6 +301,8 @@ module datapath(
 
 	// [Fetch] PC 模块
 	flopenr pcreg(clk,rst,~stallF,pc_next_addr,pcF);
+    // [fetch] 标记取指令的地址是否对齐，不对齐产生例外
+    assign checkExceptionF[7] = (pcF[1:0]==2'b00) ? 1'b0 : 7'b1;
 	// [Fetch] PC + 4
 	adder adder_plus4(pcF,32'd4,pc_plus4F);
 
@@ -262,11 +315,9 @@ module datapath(
 	// [Decode] 判断是否执行branch
 	//			为了（部分）解决控制冒险，提前判断branch
 	mux2 mux_PCSrc(pc_plus4F,pc_branch_offsetD,pcsrcD,pc_afterbranchD);
-
 	// [Decode] 【特殊情况】如果是BAL或者JAL的操作，pc+8的内容要写入31号寄存器，需要将pc+8传到后面的EXE阶段
 	//					  如果是JALR的操作，pc+8的内容要写入rd号寄存器
 	adder adder_plus8(pc_plus4D,32'd4,pc_plus8D);
-
 	// [Decode] 判断是否执行jump
 	mux2 mux_PCJump(
 		pc_afterbranchD,
@@ -274,19 +325,42 @@ module datapath(
 		jumpD,
 		pc_afterjumpD
 	);
-
 	// [Decode] 【特殊情况】如果是JR或者JALR，那么无条件跳转的值为寄存器rs中的值
+    //			 由于现在可能会出现例外情况，因此pc_next_addr的选择又多了一项例外返回地址
+	//			 newPCM选项,且如若有例外出现，则newPCM优先
 	wire [31:0] pc_jr = srca2D;
-	// assign pc_next_addr = pc_afterjumpD;
-	mux2 mux_is_jr(pc_afterjumpD,pc_jr,jrD,pc_next_addr);
+    assign pc_next_addr =
+						(checkExceptionM != 8'd0) ? newPCM :
+                        (jrD)                     ? pc_jr  :
+                        pc_afterjumpD;
 
 
     // ====================================
     // Data部分
     // ====================================
 
+	// [8个Exception]
+	// 分别是：
+	// 7. 取地址不对齐
+	// 6. break指令
+	// 5. syscall指令
+	// 4. eret指令
+	// 3. reserved指令
+	// 2. overflow例外
+	// 1. 地址错例外（读内存数据）
+	// 0. 地址错例外（写内存数据）
 
-	wire [4:0] writereg_tempE; // 存储通过regdst得到的寄存器号，但有可能被BAL、JAL、JALR覆盖
+	// [decode]
+	// 检查解析命令会不会获得例外
+    // 依次标记break、syacall、eret, reserved
+	assign checkExceptionD[6] = ex_bpD;
+	assign checkExceptionD[5] = ex_sysD;
+    assign checkExceptionD[4] = (instrD == 32'b01000010000000000000000000011000) ? 1'b1 : 1'b0;
+	assign checkExceptionD[3] = ex_riD;
+
+	// [Execute]
+	// 存储通过regdst得到的寄存器号，但有可能被BAL、JAL、JALR覆盖
+	wire [4:0] writereg_tempE;
 	wire is_al_instruction;
 	// [Execute] 决定 write register 是 rt 还是 rd
 	mux2 #(5) mux_regdst(rtE,rdE,regdstE,writereg_tempE);
@@ -304,31 +378,64 @@ module datapath(
 	regfile register(clk,rst,regwriteW,rsD,rtD,writeregW,result_filterdW,srcaD,srcbD);
     // [Execute] 判断ALU收到的srcB是RD2还是SignImm
 	mux2 mux_ALUsrc(srcb2E,signimmE,alusrcE,srcb3E);
-    // [Execute] ALU运算，控制冒险提前判断了branch，不再需要zero
-	alu alu(srca2E,srcb3E,saE,alucontrolE,aluout_tempE);
+    // [Execute] ALU运算
+	// 			 注意可能产生overflow例外
+	alu alu(srca2E,srcb3E,saE,alucontrolE,mdToHiloE,aluout_tempE,ex_ovE);
+	assign checkExceptionE[2] = ex_ovE;
 	// [Execute] 【特殊情况】如果是BAL或者JAL的操作，pc+8的内容要写入31号寄存器，需要将pc+8作为aluout的结果
 	//					   如果是JALR的操作，同样要写入pc+8
 	mux2 mux_ALUout(aluout_tempE, pc_plus8E, (balE | jalE), aluoutE);
     // [Execute] 乘法运算
     mul mul(srca2E,srcb3E,mdIsSignE,mulResult_hiE,mulResult_loE);
     // [Execute] 除法运算
+    // 			 除法完成需要36个周期，因此在除法完成前，如若没有强行中断除法运算的特殊情况发生，
+	//			 流水线必须stall
+    // 			 以下是一个简单的状态机，针对的是进行除法运算
+    always @(*)begin
+        case({mdToHiloE,mulOrdivE})
+            2'b10:begin
+                if     (div_readyE == 1'b0) begin start_divE = 1'b1; stall_divE = 1'b1; end
+                else if(div_readyE == 1'b1) begin start_divE = 1'b0; stall_divE = 1'b0; end
+            end
+            default: begin start_divE = 1'b0; stall_divE = 1'b0; end
+        endcase
+    end
     div div(clk,rst,mdIsSignE,srca2E,srcb3E,start_divE,flushE,{divResult_hiE,divResult_loE},div_readyE);
 
     // [Memory] 写hilo_reg
     hilo_reg hilo(clk,rst,hilowriteM,HI2M,LO2M,HID,LOD);
     // [Memory] 决定 write rd是 HI,还是LO
     mux2 mux_rddst(LO2M,HI2M,hilosrcM,hilooutM);
+    // [memory] 如果需要与内存读写数据，需要标记数据读写类型与读写地址是否正确
+    // 			读数据
+    assign checkExceptionM[1] = (memReadWidthM == `memReadWidth_WORD & aluoutM[1:0] != 2'b00) ? 1'b1 :
+                                (memReadWidthM == `memReadWidth_HALF & (aluoutM[1:0] != 2'b00 | aluoutM[1:0] != 2'b10)) ? 1'b1 :
+                                1'b0;
+    // 			写数据
+    assign checkExceptionM[0] = (memwriteM == `memWrite_WORD & aluoutM[1:0] != 2'b00) ? 1'b1 :
+                                (memwriteM == `memWrite_HALF & (aluoutM[1:0] != 2'b00 | aluoutM[1:0] != 2'b10)) ? 1'b1 :
+                                1'b0;
 	// [Memory] 在向内存写入之前，需要将写入数据扩展成32位
 	memwrite_extend memwrite_extend(writedataM, memwriteM, writedataExtendedM);
 	// [Memory] 在向内存写入之前，如果是SW指令还需要进行写入地址的选择
 	memwrite_filter memwrite_filter(aluoutM,memwriteM,memwrite_filterdM);
 
-    // [WriteBack] 判断写回寄存器堆的是：从ALU出来的结果（可能被BAL、JAL或JALR覆盖） or 从数据存储器读取的data or HI/LO寄存器的数据
+
+    // [Memory] 得到当前（优先级最高）的例外类型
+    exception_type exception_type(rst,checkExceptionM,cp0_statusM,cp0_causeM,except_typeM);
+    // [Memory] 决定 写入cp0的错误地址 是指令地址pcM 还是数据地址 aluoutM(注: 这里指令地址错误的优先级高于数据地址错误)
+    mux2 mux_badAddr(aluoutM,pcM,checkExceptionM[7],badAddrM);
+    // [Memory] 写cp0
+    cp0_reg cp0(clk,rst,isWritecp0M,writecp0AddrM,readcp0AddrE,srcbM,6'b000000,except_typeM,pcM,isInDelayslotM,badAddrM,cp0_countE,cp0_dataE,cp0_compareE,cp0_statusE,cp0_causeE,cp0_epcE,cp0_configE,cp0_pridE,cp0_badvaddrE,cp0_timer_intE);
+
+    // [WriteBack] 判断写回寄存器堆的是：从ALU出来的结果（可能被BAL、JAL或JALR覆盖） or 从数据存储器读取的data or HI/LO寄存器的数据 or CP0寄存器的数据
 	// mux2 mux_regwriteData(aluoutW,readdataW,memtoregW,resultW);
-    mux3 mux_regwriteData(aluoutW,readdataW,hilooutW,{hilotoregW,memtoregW},resultW);
+    // mux3 mux_regwriteData(aluoutW,readdataW,hilooutW,{hilotoregW,memtoregW},resultW);
+    mux4 mux_regwriteData(aluoutW,readdataW,hilooutW,cp0_dataW,{cp0ToRegW,hilotoregW,memtoregW},resultW);
 
 	// [WriteBack] 对于从内存中读出的数据，如果是Load指令（尤其是LH,LB），需要进行数据选择以及扩展
 	// 传出来的result_load_filterd即是LW/LH/lB最终的写回数据
 	// 当然，如果不是LW/LH/LB指令，那么传出来的东西不变
 	memload_filter #(32) memload_filter(aluoutW,resultW,memReadWidthW,memLoadIsSignW,result_filterdW);
+
 endmodule
