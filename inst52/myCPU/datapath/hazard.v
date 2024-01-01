@@ -14,7 +14,7 @@ module hazard(
 	//execute stage
 	input [4:0] rsE,rtE,
 	input [4:0] writeregE,
-	input regwriteE,
+	input [3:0] regwriteE,
 	input memtoregE,
     input hilotoregE,hilosrcE,
     input stall_divE,
@@ -28,7 +28,7 @@ module hazard(
 
 	//mem stage
 	input [4:0] writeregM,
-	input regwriteM,
+	input [3:0] regwriteM,
 	input memtoregM,
     input hilowriteM,
     input regToHilo_hiM,regToHilo_loM,mdToHiloM,
@@ -39,7 +39,7 @@ module hazard(
 
 	//write back stage
 	input [4:0] writeregW,
-	input regwriteW
+	input [3:0] regwriteW
 );
 
 	wire lwstallD,branchstallD,jrstall_WRITE;
@@ -48,11 +48,11 @@ module hazard(
 	// [数据冒险]
 	// 			-> 前推
 	// 读的不是$zero & M/W阶段的寄存器号与需要前推的E阶段寄存器号对的上 & 写使能开着，确实还没写入
-	assign forwardaE = 	((rsE!=0) & (rsE == writeregM & regwriteM)) ? 2'b10:
-						((rsE!=0) & (rsE == writeregW & regwriteW)) ? 2'b01:
+	assign forwardaE = 	((rsE!=0) & (rsE == writeregM & regwriteM == 4'b1111)) ? 2'b10:
+						((rsE!=0) & (rsE == writeregW & regwriteW == 4'b1111)) ? 2'b01:
 						2'b00;
-	assign forwardbE = 	((rtE!=0) & (rtE == writeregM & regwriteM)) ? 2'b10:
-						((rtE!=0) & (rtE == writeregW & regwriteW)) ? 2'b01:
+	assign forwardbE = 	((rtE!=0) & (rtE == writeregM & regwriteM == 4'b1111)) ? 2'b10:
+						((rtE!=0) & (rtE == writeregW & regwriteW == 4'b1111)) ? 2'b01:
 						2'b00;
 
     // 针对数据移动指令（MF、MT）的数据前推
@@ -78,15 +78,15 @@ module hazard(
 
 	// [控制冒险]
 	// 			-> 前推
-	assign forwardaD = (rsD != 0 & rsD == writeregM & regwriteM);
-	assign forwardbD = (rtD != 0 & rtD == writeregM & regwriteM);
+	assign forwardaD = (rsD != 0 & rsD == writeregM & regwriteM == 4'b1111);
+	assign forwardbD = (rtD != 0 & rtD == writeregM & regwriteM == 4'b1111);
 	// 			-> 暂停
 	// branch指令，如BEQ，需要在DECODE查看rt和rs寄存器。如果是上上一条指令有冒险，可以从MEM阶段前推过来
 	// 但如果是上一条指令有冒险，当前指令在D阶段，上一条刚在EXE阶段，得不到Aluout，不能前推，因此要暂停当前指令
 	// 判断条件：当前为branch & 上一条确实要写入寄存器，但没来得及 & E/M 目前的寄存器号与上一条的M/W阶段寄存器号对的上
 	// branchstallD 可以涵盖：BEQ，BNE，BGEZ，BGTZ，BLEZ，BLTZ
 	// 因为在DATAPATH设计中，writeregE可能被覆盖为31号，所以对于BGEZAL和BLTZAL也不用多写判断了
-	assign branchstallD = 	(branchD & regwriteE & (writeregE == rsD | writeregE == rtD)) |
+	assign branchstallD = 	(branchD & (regwriteE == 4'b1111) & (writeregE == rsD | writeregE == rtD)) |
 							(branchD & memtoregM & (writeregM == rsD | writeregM == rtD));
 
 	// 同理，对于JR和JALR，因为它们要在DECODE阶段读rs的值，因此也要判断暂停DECODE阶段
@@ -95,7 +95,7 @@ module hazard(
 
 	// 对JR指令不会产生，而是对JALR，因为其会将当前PC+8写回rd寄存器，
 	// 因此可能产生RAW冒险，需要先暂停
-	assign jrstall_WRITE = jrD && regwriteE && (writeregE == rsD);
+	assign jrstall_WRITE = jrD && (regwriteE == 4'b1111) && (writeregE == rsD);
 
 
 	// [汇总后产生的stall信号]

@@ -17,7 +17,7 @@ module datapath(
 	//execute stage
 	input memtoregE,
 	input alusrcE,regdstE,
-	input regwriteE,
+	input [3:0] regwriteE,
 	input [4:0] alucontrolE,
 	input balE, jalE, jrE,
     input hilotoregE, hilosrcE,
@@ -27,10 +27,11 @@ module datapath(
     input [4:0] writecp0AddrE,readcp0AddrE,
     input cp0ToRegE,
     input branchE,jumpE,jalrE,
+    input data_sram_enE,
 	output flushE,stallE,
 	//mem stage
 	input memtoregM,
-	input regwriteM,
+	input [3:0] regwriteM,
     input hilowriteM,hilotoregM,hilosrcM,
 	input [31:0] readdataM,
     input regToHilo_hiM,regToHilo_loM,mdToHiloM,
@@ -40,13 +41,17 @@ module datapath(
     input [4:0] writecp0AddrM,
     input cp0ToRegM,
     input branchM,jumpM,jalM,jrM,jalrM,
+    input data_sram_enM,
 	output [31:0] aluoutM,writedataExtendedM,
 	output [3:0] memwrite_filterdM,
 	//writeback stage
 	input memtoregW,
-	input regwriteW,
+	input [3:0] regwriteW,
     input hilotoregW,
-    input cp0ToRegW
+    input cp0ToRegW,
+    output [31:0] pcW,
+    output [4:0] writeregW,
+    output [31:0] result_filterdW
 );
 
     //测试数据，暂时用于代表乘法结果与除法结果
@@ -114,9 +119,7 @@ module datapath(
 	wire [7:0] checkExceptionM;
 
 	//writeback stage
-	wire [4:0] writeregW;
 	wire [31:0] aluoutW,readdataW,resultW,hilooutW;
-	wire [31:0] result_filterdW;
 	wire [3:0] memReadWidthW;
 	wire memLoadIsSignW;
     wire [31:0] cp0_dataW;
@@ -230,6 +233,7 @@ module datapath(
 	flopr #(4) r5W(clk,rst,memReadWidthM,memReadWidthW);
 	flopr #(1) r6W(clk,rst,memLoadIsSignM,memLoadIsSignW);
     flopr r7W(clk,rst,cp0_dataM,cp0_dataW);
+    flopr r8W(clk,rst,pcM,pcW);
 
 
 	// =============================
