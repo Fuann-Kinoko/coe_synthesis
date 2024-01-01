@@ -46,7 +46,10 @@ module datapath(
 	input memtoregW,
 	input regwriteW,
     input hilotoregW,
-    input cp0ToRegW
+    input cp0ToRegW,
+    output [31:0] pcW,
+    output [4:0] writeregW,
+    output [31:0] result_filterdW
 );
 
     //测试数据，暂时用于代表乘法结果与除法结果
@@ -114,9 +117,7 @@ module datapath(
 	wire [7:0] checkExceptionM;
 
 	//writeback stage
-	wire [4:0] writeregW;
 	wire [31:0] aluoutW,readdataW,resultW,hilooutW;
-	wire [31:0] result_filterdW;
 	wire [3:0] memReadWidthW;
 	wire memLoadIsSignW;
     wire [31:0] cp0_dataW;
@@ -230,6 +231,7 @@ module datapath(
 	flopr #(4) r5W(clk,rst,memReadWidthM,memReadWidthW);
 	flopr #(1) r6W(clk,rst,memLoadIsSignM,memLoadIsSignW);
     flopr r7W(clk,rst,cp0_dataM,cp0_dataW);
+	flopr r8W(clk,rst,pcM,pcW);
 
 
 	// =============================
@@ -300,7 +302,7 @@ module datapath(
 	wire [31:0] pc_next_addr;
 
 	// [Fetch] PC 模块
-	flopenr pcreg(clk,rst,~stallF,pc_next_addr,pcF);
+	flopenr_pc pcreg(clk,rst,~stallF,pc_next_addr,pcF);
     // [fetch] 标记取指令的地址是否对齐，不对齐产生例外
     assign checkExceptionF[7] = (pcF[1:0]==2'b00) ? 1'b0 : 7'b1;
 	// [Fetch] PC + 4

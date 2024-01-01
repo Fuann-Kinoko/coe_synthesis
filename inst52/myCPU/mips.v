@@ -6,14 +6,19 @@ module mips(
 	input [31:0] readdataM,
 	output [31:0] pcF,
 	output [3:0] memwriteEN,
-	output [31:0] aluoutM,writedataM
+	output [31:0] aluoutM,writedataM,
+	//debug
+	output data_sram_enM,
+    output [31:0] pcW,
+    output regwriteW,
+    output [4:0] writeregW,
+    output [31:0] resultW
 );
-
 
 	wire [5:0] opD,functD;
 	wire [4:0] rsD,rtD,rdD;
 	wire regdstE,alusrcE,branchD,jalD,jrD,pcsrcD,memtoregE,memtoregM,memtoregW;
-	wire balE,jalE,jrE,regwriteE,regwriteM,regwriteW;
+	wire balE,jalE,jrE,regwriteE,regwriteM;
 	wire [4:0] alucontrolE;
 	wire flushE,validBranchConditionD;
     wire regToHilo_hiE,regToHilo_loE,mdToHiloE,mulOrdivE,mdIsSignE;
@@ -80,6 +85,7 @@ module mips(
         .cp0ToRegM(cp0ToRegM),      .branchM(branchM),
         .jumpM(jumpM),              .jalM(jalM),
         .jrM(jrM),                  .jalrM(jalrM),
+		.data_sram_enM(data_sram_enM),
 		//[writeBack stage]
 		//				==input==
 		//				==output=
@@ -142,8 +148,10 @@ module mips(
 		//[writeBack stage]
 		//				==input==
 		.memtoregW(memtoregW), 		.regwriteW(regwriteW),
-        .hilotoregW(hilotoregW),    .cp0ToRegW(cp0ToRegW)
+        .hilotoregW(hilotoregW),    .cp0ToRegW(cp0ToRegW),
 		//				==output=
+		.pcW(pcW),                  .writeregW(writeregW),
+        .result_filterdW(resultW)
 	);
 
 endmodule

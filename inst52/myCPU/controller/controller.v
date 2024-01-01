@@ -35,6 +35,7 @@ module controller(
 	output [3:0] memReadWidthM,
 	output memLoadIsSignM,
     output [4:0] writecp0AddrM,
+	output data_sram_enM,
 
 	//write back stage
 	output memtoregW,regwriteW,hilotoregW,cp0ToRegW
@@ -47,6 +48,8 @@ module controller(
 	wire regToHilo_hiD,regToHilo_loD,mdToHiloD,mulOrdivD,hilowriteD,hilotoregD,hilosrcD,mdIsSignD,isWritecp0D,cp0ToRegD,jalrD;
 	wire balD;
 	wire[4:0] alucontrolD,writecp0AddrD,readcp0AddrD;
+	wire data_sram_enD;
+
 	//execute stage
 	wire [3:0] memReadWidthE;
 	wire memLoadIsSignE;
@@ -57,31 +60,31 @@ module controller(
 	// [decode -> execute]
 	assign pcsrcD = branchD & validBranchConditionD;
 	// 注意，这里存在flush可能性
-	flopenrc #(44) regE(
+	flopenrc #(45) regE(
 		clk, rst,
         ~stallE,
 		flushE,
 		{memtoregD,memwriteD,memReadWidthD,// 9 bit
 		alusrcD,regdstD,regwriteD,alucontrolD,// 17bit
 		balD,jalD,jrD,regToHilo_hiD,regToHilo_loD,mdToHiloD,//23bit
-		mulOrdivD,hilowriteD,hilotoregD,hilosrcD,mdIsSignD,memLoadIsSignD,isWritecp0D,writecp0AddrD,readcp0AddrD,cp0ToRegD,jalrD,branchD,jumpD},//44bit
+		mulOrdivD,hilowriteD,hilotoregD,hilosrcD,mdIsSignD,memLoadIsSignD,isWritecp0D,writecp0AddrD,readcp0AddrD,cp0ToRegD,jalrD,branchD,jumpD,data_sram_enD},//44bit
 
 		{memtoregE,memwriteE,memReadWidthE,
 		alusrcE,regdstE,regwriteE,alucontrolE,
 		balE,jalE,jrE,regToHilo_hiE,regToHilo_loE,mdToHiloE,
-		mulOrdivE,hilowriteE,hilotoregE,hilosrcE,mdIsSignE,memLoadIsSignE,isWritecp0E,writecp0AddrE,readcp0AddrE,cp0ToRegE,jalrE,branchE,jumpE}
+		mulOrdivE,hilowriteE,hilotoregE,hilosrcE,mdIsSignE,memLoadIsSignE,isWritecp0E,writecp0AddrE,readcp0AddrE,cp0ToRegE,jalrE,branchE,jumpE,data_sram_enE}
 	);
 
 	// [execute -> mem]
-	flopr #(25) regM(
+	flopr #(26) regM(
 		clk,rst,
 		{memtoregE,memReadWidthE,//5bit
 		regwriteE,regToHilo_hiE,regToHilo_loE,mdToHiloE,hilowriteE,hilotoregE,//11bit
-		hilosrcE,memLoadIsSignE,isWritecp0E,writecp0AddrE,cp0ToRegE,branchE,jumpE,jalE,jrE,jalrE},//25bit
+		hilosrcE,memLoadIsSignE,isWritecp0E,writecp0AddrE,cp0ToRegE,branchE,jumpE,jalE,jrE,jalrE,data_sram_enE},//26bit
 
 		{memtoregM,memReadWidthM,
 		regwriteM,regToHilo_hiM,regToHilo_loM,mdToHiloM,hilowriteM,hilotoregM,
-		hilosrcM,memLoadIsSignM,isWritecp0M,writecp0AddrM,cp0ToRegM,branchM,jumpM,jalM,jrM,jalrM}
+		hilosrcM,memLoadIsSignM,isWritecp0M,writecp0AddrM,cp0ToRegM,branchM,jumpM,jalM,jrM,jalrM,data_sram_enM}
 	);
 
 	// [mem -> writeBack]
@@ -130,7 +133,8 @@ module controller(
         .ex_ri(ex_riD),
 		.ex_bp(ex_bpD),
 		.ex_sys(ex_sysD),
-        .jalr(jalrD)
+        .jalr(jalrD),
+		.data_sram_en(data_sram_enD)
         //output
 	);
 
