@@ -231,7 +231,7 @@ module datapath(
 	flopr #(4) r5W(clk,rst,memReadWidthM,memReadWidthW);
 	flopr #(1) r6W(clk,rst,memLoadIsSignM,memLoadIsSignW);
     flopr r7W(clk,rst,cp0_dataM,cp0_dataW);
-	flopr r8W(clk,rst,pcM,pcW);
+	flopenr r8W(clk,rst,regwriteM,pcM,pcW);
 
 
 	// =============================

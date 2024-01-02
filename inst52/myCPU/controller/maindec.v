@@ -60,7 +60,7 @@ module maindec(
             `ADDIU,     `SLTI,
             `SLTIU,     `ANDI,
             `LUI,       `ORI,
-            `XORI,      `BNE:   regwrite = `SET_ON;
+            `XORI:    regwrite = `SET_ON;
 
             `BG_EXT_INST: begin
                 case(rt)
@@ -163,10 +163,10 @@ module maindec(
                 case(funct)
                     `JR:        begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_ON; jalr = `SET_OFF; end
                     `JALR :     begin jump = `SET_OFF; jal = `SET_ON; jr = `SET_ON; jalr = `SET_ON; end
-                    default:    begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_OFF; end
+                    default:    begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_OFF; jalr = `SET_OFF; end
                 endcase
             end
-            default: begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_OFF; end
+            default: begin jump = `SET_OFF; jal = `SET_OFF; jr = `SET_OFF; jalr = `SET_OFF; end
         endcase
     end
 
