@@ -137,10 +137,10 @@ module datapath(
 
 	// [fetch -> decode]
 	// 暂存
-	flopenr r1D(clk,rst,~stallD,pc_plus4F,pc_plus4D);
-	flopenr r2D(clk,rst,~stallD,instrF,instrD);
-    flopenr r4D(clk,rst,~stallD,pcF,pcD);
-    flopenr #(8) exceptionF2D(clk,rst,~stallD,{checkExceptionF[7],7'd0},checkExceptionD);
+	flopenrc r1D(clk,rst,~stallD,flushD,pc_plus4F,pc_plus4D);
+	flopenrc r2D(clk,rst,~stallD,flushD,instrF,instrD);
+    flopenrc r4D(clk,rst,~stallD,flushD,pcF,pcD);
+    flopenrc #(8) exceptionF2D(clk,rst,~stallD,flushD,{checkExceptionF[7],7'd0},checkExceptionD);
 	// 前推
 	// D阶段要读rs，那么看是否需要有会写入rs寄存器的指令在MEM阶段，如果有就前推
 	// 如果要前推，如果是从hilo寄存器写入rs，那么就推hilooutM
@@ -217,28 +217,28 @@ module datapath(
 
 	// [execute -> mem]
 	// 暂存
-	flopr r1M(clk,rst,srcb2E,writedataM);
-	flopr r2M(clk,rst,aluoutE,aluoutM);
-	flopr #(5) r3M(clk,rst,writeregE,writeregM);
-    flopr r5M(clk,rst,srca2E,srcaM);
-    flopr r6M(clk,rst,HI2E,HIM);
-    flopr r7M(clk,rst,LO2E,LOM);
-    flopr r8M(clk,rst,mdResult_hiE,mdResult_hiM);
-    flopr r9M(clk,rst,mdResult_loE,mdResult_loM);
-	flopr #(4) r10M(clk,rst,memwriteE,memwriteM);
-    flopr r11M(clk,rst,srcb3E,srcbM);
-    flopr r12M(clk,rst,cp0_data2E,cp0_dataM);
-    flopr r14M(clk,rst,cp0_countE,cp0_countM);
-    flopr r15M(clk,rst,cp0_compareE,cp0_compareM);
-    flopr r16M(clk,rst,cp0_statusE,cp0_causeM);
-    flopr r17M(clk,rst,cp0_causeE,cp0_causeM);
-    flopr r18M(clk,rst,cp0_epcE,cp0_epcM);
-    flopr r19M(clk,rst,cp0_configE,cp0_configM);
-    flopr r20M(clk,rst,cp0_badvaddrE,cp0_badvaddrM);
-    flopr #(1) r21M(clk,rst,cp0_timer_intE,cp0_timer_intM);
-    flopr r22M(clk,rst,pcE,pcM);
-    flopr #(1) r23M(clk,rst,isInDelayslotE,isInDelayslotM);
-    flopr #(8) exceptionE2M(clk,rst,{checkExceptionE[7:3],ex_ovE,2'b00},checkExceptionM);
+	floprc r1M(clk,rst,flushM,srcb2E,writedataM);
+	floprc r2M(clk,rst,flushM,aluoutE,aluoutM);
+	floprc #(5) r3M(clk,rst,flushM,writeregE,writeregM);
+    floprc r5M(clk,rst,flushM,srca2E,srcaM);
+    floprc r6M(clk,rst,flushM,HI2E,HIM);
+    floprc r7M(clk,rst,flushM,LO2E,LOM);
+    floprc r8M(clk,rst,flushM,mdResult_hiE,mdResult_hiM);
+    floprc r9M(clk,rst,flushM,mdResult_loE,mdResult_loM);
+	floprc #(4) r10M(clk,rst,flushM,memwriteE,memwriteM);
+    floprc r11M(clk,rst,flushM,srcb3E,srcbM);
+    floprc r12M(clk,rst,flushM,cp0_data2E,cp0_dataM);
+    floprc r14M(clk,rst,flushM,cp0_countE,cp0_countM);
+    floprc r15M(clk,rst,flushM,cp0_compareE,cp0_compareM);
+    floprc r16M(clk,rst,flushM,cp0_statusE,cp0_causeM);
+    floprc r17M(clk,rst,flushM,cp0_causeE,cp0_causeM);
+    floprc r18M(clk,rst,flushM,cp0_epcE,cp0_epcM);
+    floprc r19M(clk,rst,flushM,cp0_configE,cp0_configM);
+    floprc r20M(clk,rst,flushM,cp0_badvaddrE,cp0_badvaddrM);
+    floprc #(1) r21M(clk,rst,flushM,cp0_timer_intE,cp0_timer_intM);
+    floprc r22M(clk,rst,flushM,pcE,pcM);
+    floprc #(1) r23M(clk,rst,flushM,isInDelayslotE,isInDelayslotM);
+    floprc #(8) exceptionE2M(clk,rst,flushM,{checkExceptionE[7:3],ex_ovE,2'b00},checkExceptionM);
     // 更新hilo_reg前，确定HI、LO
     mux3 mux_HI2M(HIM,mdResult_hiM,srcaM,{regToHilo_hiM,mdToHiloM},HI2M);
     mux3 mux_LO2M(LOM,mdResult_loM,srcaM,{regToHilo_loM,mdToHiloM},LO2M);
@@ -246,14 +246,14 @@ module datapath(
 
 	// [mem -> writeBack]
 	// 暂存
-	flopr r1W(clk,rst,aluoutM,aluoutW);
-	flopr r2W(clk,rst,readdataM,readdataW);
-	flopr #(5) r3W(clk,rst,writeregM,writeregW);
-    flopr r4W(clk,rst,hilooutM,hilooutW);
-	flopr #(4) r5W(clk,rst,memReadWidthM,memReadWidthW);
-	flopr #(1) r6W(clk,rst,memLoadIsSignM,memLoadIsSignW);
-    flopr r7W(clk,rst,cp0_dataM,cp0_dataW);
-	flopr r8W(clk,rst,pcM,pcW);
+	floprc r1W(clk,rst,flushW,aluoutM,aluoutW);
+	floprc r2W(clk,rst,flushW,readdataM,readdataW);
+	floprc #(5) r3W(clk,rst,flushW,writeregM,writeregW);
+    floprc r4W(clk,rst,flushW,hilooutM,hilooutW);
+	floprc #(4) r5W(clk,rst,flushW,memReadWidthM,memReadWidthW);
+	floprc #(1) r6W(clk,rst,flushW,memLoadIsSignM,memLoadIsSignW);
+    floprc r7W(clk,rst,flushW,cp0_dataM,cp0_dataW);
+	floprc r8W(clk,rst,flushW,pcM,pcW);
 
 
 	// =============================
@@ -328,7 +328,7 @@ module datapath(
 	wire [31:0] pc_next_addr;
 
 	// [Fetch] PC 模块
-	flopenr_pc pcreg(clk,rst,~stallF,pc_next_addr,pcF);
+	flopenr_pc pcreg(clk,rst,~stallF,flushF,pc_next_addr,newPCM,pcF);
     // [fetch] 标记取指令的地址是否对齐，不对齐产生例外
     assign checkExceptionF = (pcF[1:0]==2'b00) ? 8'd0 : 8'b1000_0000;
 	// [Fetch] PC + 4
