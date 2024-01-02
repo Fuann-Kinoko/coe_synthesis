@@ -34,7 +34,7 @@ module alu(
                 result = num1 - num2;
                 overflow = 1'b0;
             end
-            `SLT_CONTROL: begin 
+            `SLT_CONTROL: begin
                 result = ($signed(num1) < $signed(num2)) ? 1'b1 : 1'b0;
                 overflow = 1'b0;
             end

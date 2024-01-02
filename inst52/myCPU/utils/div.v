@@ -102,8 +102,6 @@ module div(
 			end
 		  	`DivOn:				begin               //DivOn״̬
 				if(annul_i == 1'b0) begin
-					if(cnt == 6'd0) begin
-					end
 					if(cnt != 6'b100000) begin
 						if(div_temp[32] == 1'b1) begin
 							dividend <= {dividend[63:0] , 1'b0};
@@ -112,10 +110,10 @@ module div(
 						end
 						cnt <= cnt + 1;
 					end else begin
-						if((signed_div_i == 1'b1) && ((opdata1_i[31] ^ opdata2_when_start[31]) == 1'b1)) begin
+						if((signed_div_i == 1'b1) && ((opdata1_when_start[31] ^ opdata2_when_start[31]) == 1'b1)) begin
 							dividend[31:0] <= (~dividend[31:0] + 1);
 						end
-						if((signed_div_i == 1'b1) && ((opdata1_i[31] ^ dividend[64]) == 1'b1)) begin
+						if((signed_div_i == 1'b1) && ((opdata1_when_start[31] ^ dividend[64]) == 1'b1)) begin
 							dividend[64:33] <= (~dividend[64:33] + 1);
 						end
 						state <= `DivEnd;

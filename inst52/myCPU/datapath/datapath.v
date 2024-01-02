@@ -138,8 +138,23 @@ module datapath(
     flopenr r4D(clk,rst,~stallD,pcF,pcD);
     flopenr #(8) exceptionF2D(clk,rst,~stallD,{checkExceptionF[7],7'd0},checkExceptionD);
 	// 前推
-	mux2 forwardamux(srcaD,aluoutM,forwardaD,srca2D);
-	mux2 forwardbmux(srcbD,aluoutM,forwardbD,srcb2D);
+	// D阶段要读rs，那么看是否需要有会写入rs寄存器的指令在MEM阶段，如果有就前推
+	// 如果要前推，如果是从hilo寄存器写入rs，那么就推hilooutM
+	// 			 如果是从cp0寄存器写入rs，那么就推cp0_dataM
+	// 			 否则就是从alu的结果写入rs，推aluoutM
+	wire [2:0] forwardaSelectD,forwardbSelectD;
+	assign forwardaSelectD = (forwardaD) ? (
+		(hilotoregM) ? 3'b010 :
+		(cp0ToRegM) ? 3'b100 :
+		3'b001
+	) : 3'b000;
+	assign forwardbSelectD = (forwardbD) ? (
+		(hilotoregM) ? 3'b010 :
+		(cp0ToRegM) ? 3'b100 :
+		3'b001
+	) : 3'b000;
+	mux4 forwardamux(srcaD,aluoutM,hilooutM,cp0_dataM,forwardaSelectD,srca2D);
+	mux4 forwardbmux(srcbD,aluoutM,hilooutM,cp0_dataM,forwardbSelectD,srcb2D);
 	mux2 forwardJR(srca2D,readdataM,jrstall_READ, srca3D);
 	assign srcb3D = srcb2D;
 	// 其实只有srca有可能是jr前推的结果，才会有srca3D，但为了整齐将srcb3D也写上了
@@ -331,11 +346,11 @@ module datapath(
     //			 由于现在可能会出现例外情况，因此pc_next_addr的选择又多了一项例外返回地址
 	//			 newPCM选项,且如若有例外出现，则newPCM优先
 	wire [31:0] pc_jr = srca2D;
-    // assign pc_next_addr =
-	// 					(checkExceptionM != 8'd0) ? newPCM :
-    //                     (jrD)                     ? pc_jr  :
-    //                     pc_afterjumpD;
-	assign pc_next_addr = (jrD) ? pc_jr : pc_afterjumpD;
+    assign pc_next_addr =
+						(checkExceptionM != 8'd0) ? newPCM :
+                        (jrD)                     ? pc_jr  :
+                        pc_afterjumpD;
+	// assign pc_next_addr = (jrD) ? pc_jr : pc_afterjumpD;
 
 
     // ====================================

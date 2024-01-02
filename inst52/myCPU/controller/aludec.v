@@ -36,8 +36,8 @@ module aludec(
                 default: aluctrl = `ADD_CONTROL;
             endcase
             `INST_SET_LOADSAVE: aluctrl = `ADD_CONTROL;
-            `J, `JAL: aluctrl = `ADD_CONTROL;         // TODO: 似乎这些指令都用不到ALU，之后试着替换成`USELESS_CONTROL看看
-            `INST_SET_BRANCH: aluctrl = `ADD_CONTROL; // TODO: 似乎这些指令都用不到ALU，之后试着替换成`USELESS_CONTROL看看
+            `J, `JAL: aluctrl = `AND_CONTROL;         // TODO: 似乎这些指令都用不到ALU，之后试着替换成`USELESS_CONTROL看看
+            `INST_SET_BRANCH: aluctrl = `AND_CONTROL; // TODO: 似乎这些指令都用不到ALU，之后试着替换成`USELESS_CONTROL看看
             `LUI: aluctrl = `OR_CONTROL;
             `ORI: aluctrl = `OR_CONTROL;
             `XORI: aluctrl = `XOR_CONTROL;
