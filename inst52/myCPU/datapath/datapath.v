@@ -159,11 +159,11 @@ module datapath(
 			`BEQ: validBranchConditionD = (srca3D == srcb3D);
 			`BNE: validBranchConditionD = (srca3D != srcb3D);
 			`BGTZ: validBranchConditionD = (~srca3D[31]) & (srca3D != 32'd0);
-			`BLEZ: validBranchConditionD = (srca3D[31]);
+			`BLEZ: validBranchConditionD = (srca3D[31] || srca3D == 32'd0);
 			`BG_EXT_INST: begin // BG_EXT_INST = 000001, contains: BGEZ,BLTZ,BGEZAL,BLTZAL,
 				case(rtD)
 					`BGEZ: validBranchConditionD = (~srca3D[31]);
-					`BLTZ: validBranchConditionD = (srca3D[31]) | (srca3D == 32'd0);
+					`BLTZ: validBranchConditionD = (srca3D[31]);
 					`BGEZAL: validBranchConditionD = (~srca3D[31]);
 					`BLTZAL: validBranchConditionD = (srca3D[31]);
 					default: validBranchConditionD = 1'b0;
@@ -216,7 +216,7 @@ module datapath(
     flopr #(1) r21M(clk,rst,cp0_timer_intE,cp0_timer_intM);
     flopr r22M(clk,rst,pcE,pcM);
     flopr #(1) r23M(clk,rst,isInDelayslotE,isInDelayslotM);
-    flopr #(8) exceptionE2M(clk,rst,{checkExceptionE[7:2],2'b00},checkExceptionM);
+    flopr #(8) exceptionE2M(clk,rst,{checkExceptionE[7:3],ex_ovE,2'b00},checkExceptionM);
     // 更新hilo_reg前，确定HI、LO
     mux3 mux_HI2M(HIM,mdResult_hiM,srcaM,{regToHilo_hiM,mdToHiloM},HI2M);
     mux3 mux_LO2M(LOM,mdResult_loM,srcaM,{regToHilo_loM,mdToHiloM},LO2M);
@@ -331,10 +331,11 @@ module datapath(
     //			 由于现在可能会出现例外情况，因此pc_next_addr的选择又多了一项例外返回地址
 	//			 newPCM选项,且如若有例外出现，则newPCM优先
 	wire [31:0] pc_jr = srca2D;
-    assign pc_next_addr =
-						(checkExceptionM != 8'd0) ? newPCM :
-                        (jrD)                     ? pc_jr  :
-                        pc_afterjumpD;
+    // assign pc_next_addr =
+	// 					(checkExceptionM != 8'd0) ? newPCM :
+    //                     (jrD)                     ? pc_jr  :
+    //                     pc_afterjumpD;
+	assign pc_next_addr = (jrD) ? pc_jr : pc_afterjumpD;
 
 
     // ====================================
@@ -383,12 +384,12 @@ module datapath(
     // [Execute] ALU运算
 	// 			 注意可能产生overflow例外
 	alu alu(srca2E,srcb3E,saE,alucontrolE,mdToHiloE,aluout_tempE,ex_ovE);
-	assign checkExceptionE[2] = ex_ovE;
+	// assign checkExceptionE[2] = ex_ovE;
 	// [Execute] 【特殊情况】如果是BAL或者JAL的操作，pc+8的内容要写入31号寄存器，需要将pc+8作为aluout的结果
 	//					   如果是JALR的操作，同样要写入pc+8
 	mux2 mux_ALUout(aluout_tempE, pc_plus8E, (balE | jalE), aluoutE);
     // [Execute] 乘法运算
-    mul mul(srca2E,srcb3E,mdIsSignE,mulResult_hiE,mulResult_loE);
+    mul mul(srca2E,srcb2E,mdIsSignE,mulResult_hiE,mulResult_loE);
     // [Execute] 除法运算
     // 			 除法完成需要36个周期，因此在除法完成前，如若没有强行中断除法运算的特殊情况发生，
 	//			 流水线必须stall

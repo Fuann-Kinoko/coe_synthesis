@@ -44,7 +44,8 @@ module aludec(
             `ANDI: aluctrl = `AND_CONTROL;
             `ADDI: aluctrl = `ADD_CONTROL;
             `ADDIU: aluctrl = `ADDU_CONTROL;
-            `SLTI, `SLTIU: aluctrl = `SLT_CONTROL;
+            `SLTI: aluctrl = `SLT_CONTROL;
+            `SLTIU: aluctrl = `SLTU_CONTROL;
             default: aluctrl = `AND_CONTROL;
         endcase
     end

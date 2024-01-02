@@ -55,16 +55,22 @@ module mycpu_top(
         .resultW(resultW)
     );
 
+    // 地址转换
+    wire [31:0] true_pc;
+    wire [31:0] true_dataAddr;
+
+    mmu mmu(pc,true_pc,aluout,true_dataAddr);
+
     assign inst_sram_en = 1'b1;     //如果有inst_en，就用inst_en
     assign inst_sram_wen = 4'b0;
-    assign inst_sram_addr = pc;
+    assign inst_sram_addr = true_pc;
     assign inst_sram_wdata = 32'b0;
     assign instr = inst_sram_rdata;
 
     assign data_sram_en = data_sram_enM;     //如果有data_en，就用data_en
     // 读入时，就算是只读半字，也需要读入整个word（即memwrite的四位都为0），然后再根据类型选择要读的有哪些部分
     assign data_sram_wen = memwrite;
-    assign data_sram_addr = aluout;
+    assign data_sram_addr = true_dataAddr;
     assign data_sram_wdata = writedata;
     assign readdata = data_sram_rdata;
 
