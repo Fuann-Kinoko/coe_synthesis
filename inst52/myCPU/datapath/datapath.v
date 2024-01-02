@@ -59,6 +59,7 @@ module datapath(
 	wire stallF;
 	wire [31:0] pc_plus4F;
 	wire [7:0] checkExceptionF;
+	wire flushF;
 
 	//decode stage
 	wire [31:0] pc_afterjumpD,pc_afterbranchD,pc_branch_offsetD;
@@ -72,6 +73,7 @@ module datapath(
     wire [31:0] HID,LOD;
     wire [31:0] pcD;
 	wire [7:0] checkExceptionD;
+	wire flushD;
 
 	//execute stage
 	wire [1:0] forwardaE,forwardbE;
@@ -115,12 +117,14 @@ module datapath(
     wire [31:0] badAddrM;
     wire [31:0] newPCM;
 	wire [7:0] checkExceptionM;
+	wire flushM;
 
 	//writeback stage
 	wire [31:0] aluoutW,readdataW,resultW,hilooutW;
 	wire [3:0] memReadWidthW;
 	wire memLoadIsSignW;
     wire [31:0] cp0_dataW;
+	wire flushW;
 
 
 
@@ -258,6 +262,7 @@ module datapath(
 	hazard h(
 		//fetch stage
 		.stallF(stallF),
+		.flushF(flushF),
 		//decode stage
 		.rsD(rsD),
 		.rtD(rtD),
@@ -267,6 +272,7 @@ module datapath(
 		.forwardbD(forwardbD),
 		.stallD(stallD),
 		.jrstall_READ(jrstall_READ),
+		.flushD(flushD),
 		//execute stage
 		.rsE(rsE),
 		.rtE(rtE),
@@ -298,9 +304,11 @@ module datapath(
         .except_typeM(except_typeM),
         .cp0_epcM(cp0_epcM),
         .newPCM(newPCM),
+		.flushM(flushM),
 		//write back stage
 		.writeregW(writeregW),
-		.regwriteW(regwriteW)
+		.regwriteW(regwriteW),
+		.flushW(flushW)
 	);
 
 
@@ -322,7 +330,7 @@ module datapath(
 	// [Fetch] PC 模块
 	flopenr_pc pcreg(clk,rst,~stallF,pc_next_addr,pcF);
     // [fetch] 标记取指令的地址是否对齐，不对齐产生例外
-    assign checkExceptionF[7] = (pcF[1:0]==2'b00) ? 1'b0 : 7'b1;
+    assign checkExceptionF = (pcF[1:0]==2'b00) ? 8'd0 : 8'b1000_0000;
 	// [Fetch] PC + 4
 	adder adder_plus4(pcF,32'd4,pc_plus4F);
 
