@@ -60,7 +60,7 @@ module maindec(
             `ADDIU,     `SLTI,
             `SLTIU,     `ANDI,
             `LUI,       `ORI,
-            `XORI,      `BNE:   regwrite = `SET_ON;
+            `XORI:    regwrite = `SET_ON;
 
             `BG_EXT_INST: begin
                 case(rt)

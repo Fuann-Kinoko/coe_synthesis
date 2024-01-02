@@ -133,10 +133,10 @@ module datapath(
 
 	// [fetch -> decode]
 	// 暂存
-	flopenrc r1D(clk,rst,~stallD,jumpD | pcsrcD,pc_plus4F,pc_plus4D);
-	flopenrc r2D(clk,rst,~stallD,jumpD | pcsrcD,instrF,instrD);
-    flopenrc r4D(clk,rst,~stallD,jumpD | pcsrcD,pcF,pcD);
-    flopenrc #(8) exceptionF2D(clk,rst,~stallD,jumpD | pcsrcD,{checkExceptionF[7],7'd0},checkExceptionD);
+	flopenr r1D(clk,rst,~stallD,pc_plus4F,pc_plus4D);
+	flopenr r2D(clk,rst,~stallD,instrF,instrD);
+    flopenr r4D(clk,rst,~stallD,pcF,pcD);
+    flopenr #(8) exceptionF2D(clk,rst,~stallD,{checkExceptionF[7],7'd0},checkExceptionD);
 	// 前推
 	mux2 forwardamux(srcaD,aluoutM,forwardaD,srca2D);
 	mux2 forwardbmux(srcbD,aluoutM,forwardbD,srcb2D);
@@ -231,7 +231,7 @@ module datapath(
 	flopr #(4) r5W(clk,rst,memReadWidthM,memReadWidthW);
 	flopr #(1) r6W(clk,rst,memLoadIsSignM,memLoadIsSignW);
     flopr r7W(clk,rst,cp0_dataM,cp0_dataW);
-	flopr r8W(clk,rst,pcM,pcW);
+	flopenr r8W(clk,rst,regwriteM,pcM,pcW);
 
 
 	// =============================
