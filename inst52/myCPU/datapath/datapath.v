@@ -167,6 +167,9 @@ module datapath(
 	assign rdD = instrD[15:11];
     assign saD = instrD[10:6];
 
+	wire ex_eretD;
+	assign ex_eretD = (instrD == 32'b01000010000000000000000000011000) ? 1'b1 : 1'b0;
+
 	// 提前在decode判断branch
 	// 根据指令不同，判断是否valid的格式也不同
 	always @(*) begin
@@ -200,7 +203,7 @@ module datapath(
     flopenrc r9E(clk,rst,~stallE,flushE,HID,HIE);
     flopenrc r10E(clk,rst,~stallE,flushE,LOD,LOE);
     flopenrc r12E(clk,rst,~stallE,flushE,pcD,pcE);
-    flopenrc #(8) exceptionD2E(clk,rst,~stallE,flushE,{checkExceptionD[7:3],3'b000},checkExceptionE);
+    flopenrc #(8) exceptionD2E(clk,rst,~stallE,flushE,{checkExceptionD[7],ex_bpD,ex_sysD,ex_eretD,ex_riD,3'b000},checkExceptionE);
 	// 前推
 	mux3 forwardaemux(srcaE,result_filterdW,aluoutM,forwardaE,srca2E);
 	mux3 forwardbemux(srcbE,result_filterdW,aluoutM,forwardbE,srcb2E);
@@ -371,10 +374,10 @@ module datapath(
 	// [decode]
 	// 检查解析命令会不会获得例外
     // 依次标记break、syacall、eret, reserved
-	assign checkExceptionD[6] = ex_bpD;
-	assign checkExceptionD[5] = ex_sysD;
-    assign checkExceptionD[4] = (instrD == 32'b01000010000000000000000000011000) ? 1'b1 : 1'b0;
-	assign checkExceptionD[3] = ex_riD;
+	// assign checkExceptionD[6] = ex_bpD;
+	// assign checkExceptionD[5] = ex_sysD;
+    // assign checkExceptionD[4] =
+	// assign checkExceptionD[3] = ex_riD;
 
 	// [Execute]
 	// 存储通过regdst得到的寄存器号，但有可能被BAL、JAL、JALR覆盖
