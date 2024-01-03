@@ -514,7 +514,10 @@ module datapath(
 	// [Memory] 在向内存写入之前，需要将写入数据扩展成32位
 	memwrite_extend memwrite_extend(writedataM, memwriteM, writedataExtendedM);
 	// [Memory] 在向内存写入之前，如果是SW指令还需要进行写入地址的选择
-	memwrite_filter memwrite_filter(aluoutM,memwriteM,memwrite_filterdM);
+	//			【提醒】如果存在例外0(ades)，那么写入地址是错误的，因此需要把写入给取消
+	wire [3:0] memwrite_safeM;
+	assign memwrite_safeM = (checkExceptionM[0] == 1'b1) ? 4'b0000 : memwriteM;
+	memwrite_filter memwrite_filter(aluoutM,memwrite_safeM,memwrite_filterdM);
 
 
     // [Memory] 得到当前（优先级最高）的例外类型
