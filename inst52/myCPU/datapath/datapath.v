@@ -42,6 +42,7 @@ module datapath(
     input branchM,jumpM,jalM,jrM,jalrM,
 	output [31:0] aluoutM,writedataExtendedM,
 	output [3:0] memwrite_filterdM,
+	output flushM,
 	//writeback stage
 	input memtoregW,
 	input regwriteW,
@@ -49,7 +50,8 @@ module datapath(
     input cp0ToRegW,
     output [31:0] pcW,
     output [4:0] writeregW,
-    output [31:0] result_filterdW
+    output [31:0] result_filterdW,
+	output flushW
 );
 
     //测试数据，暂时用于代表乘法结果与除法结果
@@ -117,14 +119,12 @@ module datapath(
     wire [31:0] badAddrM;
     wire [31:0] newPCM;
 	wire [7:0] checkExceptionM;
-	wire flushM;
 
 	//writeback stage
 	wire [31:0] aluoutW,readdataW,resultW,hilooutW;
 	wire [3:0] memReadWidthW;
 	wire memLoadIsSignW;
     wire [31:0] cp0_dataW;
-	wire flushW;
 
 
 
@@ -251,52 +251,52 @@ module datapath(
 
 	// [execute -> mem]
 	// 暂存
-	// floprc r1M(clk,rst,flushM,srcb2E,writedataM);
-	// floprc r2M(clk,rst,flushM,aluoutE,aluoutM);
-	// floprc #(5) r3M(clk,rst,flushM,writeregE,writeregM);
-    // floprc r5M(clk,rst,flushM,srca2E,srcaM);
-    // floprc r6M(clk,rst,flushM,HI2E,HIM);
-    // floprc r7M(clk,rst,flushM,LO2E,LOM);
-    // floprc r8M(clk,rst,flushM,mdResult_hiE,mdResult_hiM);
-    // floprc r9M(clk,rst,flushM,mdResult_loE,mdResult_loM);
-	// floprc #(4) r10M(clk,rst,flushM,memwriteE,memwriteM);
-    // floprc r11M(clk,rst,flushM,srcb3E,srcbM);
-    // floprc r12M(clk,rst,flushM,cp0_data2E,cp0_dataM);
-    // floprc r14M(clk,rst,flushM,cp0_countE,cp0_countM);
-    // floprc r15M(clk,rst,flushM,cp0_compareE,cp0_compareM);
-    // floprc r16M(clk,rst,flushM,cp0_statusE,cp0_causeM);
-    // floprc r17M(clk,rst,flushM,cp0_causeE,cp0_causeM);
-    // floprc r18M(clk,rst,flushM,cp0_epcE,cp0_epcM);
-    // floprc r19M(clk,rst,flushM,cp0_configE,cp0_configM);
-    // floprc r20M(clk,rst,flushM,cp0_badvaddrE,cp0_badvaddrM);
-    // floprc #(1) r21M(clk,rst,flushM,cp0_timer_intE,cp0_timer_intM);
-    // floprc r22M(clk,rst,flushM,pcE,pcM);
-    // floprc #(1) r23M(clk,rst,flushM,isInDelayslotE,isInDelayslotM);
-    // floprc #(8) exceptionE2M(clk,rst,flushM,{checkExceptionE[7:3],ex_ovE,2'b00},checkExceptionM);
+	floprc r1M(clk,rst,flushM,srcb2E,writedataM);
+	floprc r2M(clk,rst,flushM,aluoutE,aluoutM);
+	floprc #(5) r3M(clk,rst,flushM,writeregE,writeregM);
+    floprc r5M(clk,rst,flushM,srca2E,srcaM);
+    floprc r6M(clk,rst,flushM,HI2E,HIM);
+    floprc r7M(clk,rst,flushM,LO2E,LOM);
+    floprc r8M(clk,rst,flushM,mdResult_hiE,mdResult_hiM);
+    floprc r9M(clk,rst,flushM,mdResult_loE,mdResult_loM);
+	floprc #(4) r10M(clk,rst,flushM,memwriteE,memwriteM);
+    floprc r11M(clk,rst,flushM,srcb3E,srcbM);
+    floprc r12M(clk,rst,flushM,cp0_data2E,cp0_dataM);
+    floprc r14M(clk,rst,flushM,cp0_countE,cp0_countM);
+    floprc r15M(clk,rst,flushM,cp0_compareE,cp0_compareM);
+    floprc r16M(clk,rst,flushM,cp0_statusE,cp0_causeM);
+    floprc r17M(clk,rst,flushM,cp0_causeE,cp0_causeM);
+    floprc r18M(clk,rst,flushM,cp0_epcE,cp0_epcM);
+    floprc r19M(clk,rst,flushM,cp0_configE,cp0_configM);
+    floprc r20M(clk,rst,flushM,cp0_badvaddrE,cp0_badvaddrM);
+    floprc #(1) r21M(clk,rst,flushM,cp0_timer_intE,cp0_timer_intM);
+    floprc r22M(clk,rst,flushM,pcE,pcM);
+    floprc #(1) r23M(clk,rst,flushM,isInDelayslotE,isInDelayslotM);
+    floprc #(6) exceptionE2M(clk,rst,flushM,{checkExceptionE[7:3],ex_ovE},checkExceptionM[7:2]);
 
 
-	flopr r1M(clk,rst,srcb2E,writedataM);
-	flopr r2M(clk,rst,aluoutE,aluoutM);
-	flopr #(5) r3M(clk,rst,writeregE,writeregM);
-    flopr r5M(clk,rst,srca2E,srcaM);
-    flopr r6M(clk,rst,HI2E,HIM);
-    flopr r7M(clk,rst,LO2E,LOM);
-    flopr r8M(clk,rst,mdResult_hiE,mdResult_hiM);
-    flopr r9M(clk,rst,mdResult_loE,mdResult_loM);
-	flopr #(4) r10M(clk,rst,memwriteE,memwriteM);
-    flopr r11M(clk,rst,srcb3E,srcbM);
-    flopr r12M(clk,rst,cp0_data2E,cp0_dataM);
-    flopr r14M(clk,rst,cp0_countE,cp0_countM);
-    flopr r15M(clk,rst,cp0_compareE,cp0_compareM);
-    flopr r16M(clk,rst,cp0_statusE,cp0_causeM);
-    flopr r17M(clk,rst,cp0_causeE,cp0_causeM);
-    flopr r18M(clk,rst,cp0_epcE,cp0_epcM);
-    flopr r19M(clk,rst,cp0_configE,cp0_configM);
-    flopr r20M(clk,rst,cp0_badvaddrE,cp0_badvaddrM);
-    flopr #(1) r21M(clk,rst,cp0_timer_intE,cp0_timer_intM);
-    flopr r22M(clk,rst,pcE,pcM);
-    flopr #(1) r23M(clk,rst,isInDelayslotE,isInDelayslotM);
-    flopr #(6) exceptionE2M(clk,rst,{checkExceptionE[7:3],ex_ovE},checkExceptionM[7:2]);
+	// flopr r1M(clk,rst,srcb2E,writedataM);
+	// flopr r2M(clk,rst,aluoutE,aluoutM);
+	// flopr #(5) r3M(clk,rst,writeregE,writeregM);
+    // flopr r5M(clk,rst,srca2E,srcaM);
+    // flopr r6M(clk,rst,HI2E,HIM);
+    // flopr r7M(clk,rst,LO2E,LOM);
+    // flopr r8M(clk,rst,mdResult_hiE,mdResult_hiM);
+    // flopr r9M(clk,rst,mdResult_loE,mdResult_loM);
+	// flopr #(4) r10M(clk,rst,memwriteE,memwriteM);
+    // flopr r11M(clk,rst,srcb3E,srcbM);
+    // flopr r12M(clk,rst,cp0_data2E,cp0_dataM);
+    // flopr r14M(clk,rst,cp0_countE,cp0_countM);
+    // flopr r15M(clk,rst,cp0_compareE,cp0_compareM);
+    // flopr r16M(clk,rst,cp0_statusE,cp0_causeM);
+    // flopr r17M(clk,rst,cp0_causeE,cp0_causeM);
+    // flopr r18M(clk,rst,cp0_epcE,cp0_epcM);
+    // flopr r19M(clk,rst,cp0_configE,cp0_configM);
+    // flopr r20M(clk,rst,cp0_badvaddrE,cp0_badvaddrM);
+    // flopr #(1) r21M(clk,rst,cp0_timer_intE,cp0_timer_intM);
+    // flopr r22M(clk,rst,pcE,pcM);
+    // flopr #(1) r23M(clk,rst,isInDelayslotE,isInDelayslotM);
+    // flopr #(6) exceptionE2M(clk,rst,{checkExceptionE[7:3],ex_ovE},checkExceptionM[7:2]);
     // 更新hilo_reg前，确定HI、LO
     mux3 mux_HI2M(HIM,mdResult_hiM,srcaM,{regToHilo_hiM,mdToHiloM},HI2M);
     mux3 mux_LO2M(LOM,mdResult_loM,srcaM,{regToHilo_loM,mdToHiloM},LO2M);
@@ -304,23 +304,23 @@ module datapath(
 
 	// [mem -> writeBack]
 	// 暂存
-	// floprc r1W(clk,rst,flushW,aluoutM,aluoutW);
-	// floprc r2W(clk,rst,flushW,readdataM,readdataW);
-	// floprc #(5) r3W(clk,rst,flushW,writeregM,writeregW);
-    // floprc r4W(clk,rst,flushW,hilooutM,hilooutW);
-	// floprc #(4) r5W(clk,rst,flushW,memReadWidthM,memReadWidthW);
-	// floprc #(1) r6W(clk,rst,flushW,memLoadIsSignM,memLoadIsSignW);
-    // floprc r7W(clk,rst,flushW,cp0_dataM,cp0_dataW);
-	// floprc r8W(clk,rst,flushW,pcM,pcW);
+	floprc r1W(clk,rst,flushW,aluoutM,aluoutW);
+	floprc r2W(clk,rst,flushW,readdataM,readdataW);
+	floprc #(5) r3W(clk,rst,flushW,writeregM,writeregW);
+    floprc r4W(clk,rst,flushW,hilooutM,hilooutW);
+	floprc #(4) r5W(clk,rst,flushW,memReadWidthM,memReadWidthW);
+	floprc #(1) r6W(clk,rst,flushW,memLoadIsSignM,memLoadIsSignW);
+    floprc r7W(clk,rst,flushW,cp0_dataM,cp0_dataW);
+	floprc r8W(clk,rst,flushW,pcM,pcW);
 
-	flopr r1W(clk,rst,aluoutM,aluoutW);
-	flopr r2W(clk,rst,readdataM,readdataW);
-	flopr #(5) r3W(clk,rst,writeregM,writeregW);
-    flopr r4W(clk,rst,hilooutM,hilooutW);
-	flopr #(4) r5W(clk,rst,memReadWidthM,memReadWidthW);
-	flopr #(1) r6W(clk,rst,memLoadIsSignM,memLoadIsSignW);
-    flopr r7W(clk,rst,cp0_dataM,cp0_dataW);
-	flopr r8W(clk,rst,pcM,pcW);
+	// flopr r1W(clk,rst,aluoutM,aluoutW);
+	// flopr r2W(clk,rst,readdataM,readdataW);
+	// flopr #(5) r3W(clk,rst,writeregM,writeregW);
+    // flopr r4W(clk,rst,hilooutM,hilooutW);
+	// flopr #(4) r5W(clk,rst,memReadWidthM,memReadWidthW);
+	// flopr #(1) r6W(clk,rst,memLoadIsSignM,memLoadIsSignW);
+    // flopr r7W(clk,rst,cp0_dataM,cp0_dataW);
+	// flopr r8W(clk,rst,pcM,pcW);
 
 
 	// =============================
