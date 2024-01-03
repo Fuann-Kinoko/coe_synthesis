@@ -296,7 +296,7 @@ module datapath(
     flopr #(1) r21M(clk,rst,cp0_timer_intE,cp0_timer_intM);
     flopr r22M(clk,rst,pcE,pcM);
     flopr #(1) r23M(clk,rst,isInDelayslotE,isInDelayslotM);
-    flopr #(8) exceptionE2M(clk,rst,{checkExceptionE[7:3],ex_ovE,2'b00},checkExceptionM);
+    flopr #(6) exceptionE2M(clk,rst,{checkExceptionE[7:3],ex_ovE},checkExceptionM[7:2]);
     // 更新hilo_reg前，确定HI、LO
     mux3 mux_HI2M(HIM,mdResult_hiM,srcaM,{regToHilo_hiM,mdToHiloM},HI2M);
     mux3 mux_LO2M(LOM,mdResult_loM,srcaM,{regToHilo_loM,mdToHiloM},LO2M);
@@ -504,12 +504,12 @@ module datapath(
     mux2 mux_rddst(LO2M,HI2M,hilosrcM,hilooutM);
     // [memory] 如果需要与内存读写数据，需要标记数据读写类型与读写地址是否正确
     // 			读数据
-    assign checkExceptionM[1] = (memReadWidthM == `memReadWidth_WORD & aluoutM[1:0] != 2'b00) ? 1'b1 :
-                                (memReadWidthM == `memReadWidth_HALF & (aluoutM[1:0] != 2'b00 | aluoutM[1:0] != 2'b10)) ? 1'b1 :
+    assign checkExceptionM[1] = (memReadWidthM == `memReadWidth_WORD && aluoutM[1:0] != 2'b00) ? 1'b1 :
+                                (memReadWidthM == `memReadWidth_HALF && (aluoutM[1:0] == 2'b11 || aluoutM[1:0] == 2'b01)) ? 1'b1 :
                                 1'b0;
     // 			写数据
-    assign checkExceptionM[0] = (memwriteM == `memWrite_WORD & aluoutM[1:0] != 2'b00) ? 1'b1 :
-                                (memwriteM == `memWrite_HALF & (aluoutM[1:0] != 2'b00 | aluoutM[1:0] != 2'b10)) ? 1'b1 :
+    assign checkExceptionM[0] = (memwriteM == `memWrite_WORD && aluoutM[1:0] != 2'b00) ? 1'b1 :
+                                (memwriteM == `memWrite_HALF && (aluoutM[1:0] == 2'b11 || aluoutM[1:0] == 2'b01)) ? 1'b1 :
                                 1'b0;
 	// [Memory] 在向内存写入之前，需要将写入数据扩展成32位
 	memwrite_extend memwrite_extend(writedataM, memwriteM, writedataExtendedM);
