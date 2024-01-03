@@ -3,6 +3,7 @@
 module hazard(
 	//fetch stage
 	output stallF,
+	output flushF,
 
 	//decode stage
 	input [4:0] rsD,rtD,
@@ -10,6 +11,7 @@ module hazard(
 	output forwardaD,forwardbD,
 	output stallD,
 	output jrstall_READ,
+	output flushD,
 
 	//execute stage
 	input [4:0] rsE,rtE,
@@ -36,10 +38,12 @@ module hazard(
     input [4:0] writecp0AddrM,
     input [31:0] except_typeM,cp0_epcM,
     output reg [31:0] newPCM,
+	output flushM,
 
 	//write back stage
 	input [4:0] writeregW,
-	input regwriteW
+	input regwriteW,
+	output flushW
 );
 
 	wire lwstallD,branchstallD,jrstall_WRITE;
@@ -102,8 +106,13 @@ module hazard(
 
 	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE;
 	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE;
-	assign flushE = lwstallD | branchstallD | jrstall_READ;
+	assign flushE = lwstallD | branchstallD | jrstall_READ | (except_typeM!=32'd0);
     assign stallE = stall_divE;
+
+    assign flushF = (except_typeM!=32'd0);
+	assign flushD = (except_typeM!=32'd0);
+	assign flushM = (except_typeM!=32'd0);
+	assign flushW = (except_typeM!=32'd0);
 
     // 根据当前得到的例外类型跳转到例外处理程序入口（除了ERET外，都统一跳到0xBFC00380）
     always @(*) begin

@@ -10,10 +10,10 @@ module exception_type(
         if(rst) begin
             except_type <= 32'b0;
         end
-        else if((cp0_status[15:8] & cp0_cause[15:8] != 8'h00) && 
+        else if((cp0_status[15:8] & cp0_cause[15:8] != 8'h00) &&
                         (cp0_status[1] == 1'b0 && (cp0_status[0] == 1'b1))) begin
                             except_type <= 32'h00000001;//中断
-                        end 
+                        end
         else if(except[7] == 1'b1 || except[1] == 1'b1) begin
             except_type <= 32'h00000004;//ADEL
         end
@@ -35,6 +35,8 @@ module exception_type(
         else if(except[2] == 1'b1) begin
             except_type <= 32'h0000000c;//Ov
         end
+        else
+            except_type <= 32'd0;
     end
-    
+
 endmodule

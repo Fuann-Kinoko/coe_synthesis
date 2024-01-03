@@ -20,7 +20,7 @@ module mips(
 	wire regdstE,alusrcE,branchD,jalD,jrD,pcsrcD,memtoregE,memtoregM,memtoregW;
 	wire balE,jalE,jrE,regwriteE,regwriteM;
 	wire [4:0] alucontrolE;
-	wire flushE,validBranchConditionD;
+	wire flushE,flushM,flushW,validBranchConditionD;
     wire regToHilo_hiE,regToHilo_loE,mdToHiloE,mulOrdivE,mdIsSignE;
     wire regToHilo_hiM,regToHilo_loM,mdToHiloM;
     wire hilotoregE;
@@ -72,6 +72,7 @@ module mips(
         .jalrE(jalrE),
 		//[mem stage]
 		//				==input==
+		.flushM(flushM),
 		//				==output=
 		.memtoregM(memtoregM),		.memwriteE(memwriteE),
         .regToHilo_hiM(regToHilo_hiM),
@@ -88,6 +89,7 @@ module mips(
 		.data_sram_enM(data_sram_enM),
 		//[writeBack stage]
 		//				==input==
+		.flushW(flushW),
 		//				==output=
 		.memtoregW(memtoregW),		.regwriteW(regwriteW),
         .hilotoregW(hilotoregW),    .cp0ToRegW(cp0ToRegW)
@@ -145,13 +147,15 @@ module mips(
 		//				==output=
 		.aluoutM(aluoutM),			.writedataExtendedM(writedataM),
 		.memwrite_filterdM(memwriteEN),
+		.flushM(flushM),
 		//[writeBack stage]
 		//				==input==
 		.memtoregW(memtoregW), 		.regwriteW(regwriteW),
         .hilotoregW(hilotoregW),    .cp0ToRegW(cp0ToRegW),
 		//				==output=
 		.pcW(pcW),                  .writeregW(writeregW),
-        .result_filterdW(resultW)
+        .result_filterdW(resultW),
+		.flushW(flushW)
 	);
 
 endmodule
