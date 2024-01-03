@@ -36,7 +36,7 @@ module mycpu_top(
     wire [31:0] resultW;
 
     mips mips(
-        .clk(clk),
+        .clk(~clk),
         .rst(~resetn),
         //instr
         // .inst_en(inst_en),

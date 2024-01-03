@@ -119,14 +119,12 @@ module datapath(
     wire [31:0] badAddrM;
     wire [31:0] newPCM;
 	wire [7:0] checkExceptionM;
-	wire flushM;
 
 	//writeback stage
 	wire [31:0] aluoutW,readdataW,resultW,hilooutW;
 	wire [3:0] memReadWidthW;
 	wire memLoadIsSignW;
     wire [31:0] cp0_dataW;
-	wire flushW;
 
 
 
