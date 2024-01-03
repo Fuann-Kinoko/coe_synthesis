@@ -1,32 +1,78 @@
 module mycpu_top(
-    input clk,
-    input resetn,  //low active
+    input [5:0] ext_int,
 
-    input [5:0] ext_int, // 我们设计的mycpu_top暂未使用，这里仅仅是用于soc_lite_top调用mycpu_top时使用
-    //cpu inst sram
-    output        inst_sram_en   ,
-    output [3 :0] inst_sram_wen  ,
-    output [31:0] inst_sram_addr ,
-    output [31:0] inst_sram_wdata,
-    input  [31:0] inst_sram_rdata,
-    //cpu data sram
-    output        data_sram_en   ,
-    output [3 :0] data_sram_wen  ,
-    output [31:0] data_sram_addr ,
-    output [31:0] data_sram_wdata,
-    input  [31:0] data_sram_rdata,
+    input aclk,
+    input aresetn,
+
+    output [3:0]    arid,
+    output [31:0]   araddr,
+    output [7:0]    arlen,
+    output [2:0]    arsize,
+    output [1:0]    arburst,
+    output [1:0]    arlock,
+    output [3:0]    arcache,
+    output [2:0]    arprot,
+    output          arvalid,
+    input           arready,
+
+    input [3:0]     rid,
+    input [31:0]    rdata,
+    input [1:0]     rresp,
+    input           rlast,
+    input           rvalid,
+    output          rready,
+
+    output [3:0]    awid,
+    output [31:0]   awaddr,
+    output [7:0]    awlen,
+    output [2:0]    awsize,
+    output [1:0]    awburst,
+    output [1:0]    awlock,
+    output [3:0]    awcache,
+    output [2:0]    awprot,
+    output          awvalid,
+    input           awready,
+
+    output [3:0]    wid,
+    output [31:0]   wdata,
+    output [3:0]    wstrb,
+    output          wlast,
+    output          wvalid,
+    input           wready,
+
+    input [3:0]     bid,
+    input [1:0]     bresp,
+    input           bvalid,
+    output          bready,
+
     //debug
-    output [31:0] debug_wb_pc,
-    output [3:0] debug_wb_rf_wen,
-    output [4:0] debug_wb_rf_wnum,
-    output [31:0] debug_wb_rf_wdata
+    output [31:0]   debug_wb_pc,
+    output [3:0]    debug_wb_rf_wen,
+    output [4:0]    debug_wb_rf_wnum,
+    output [31:0]   debug_wb_rf_wdata
 );
 
-// 一个例子
-	wire [31:0] pc;
+    //cpu inst sram
+    wire        inst_sram_en   ;
+    wire [3 :0] inst_sram_wen  ;
+    wire [31:0] inst_sram_addr ;
+    wire [31:0] inst_sram_wdata;
+    wire [31:0] inst_sram_rdata;
+    //cpu data sram
+    wire        data_sram_en   ;
+    wire [3 :0] data_sram_wen  ;
+    wire [31:0] data_sram_addr ;
+    wire [31:0] data_sram_wdata;
+    wire [31:0] data_sram_rdata;
+
+    wire clk, resetn;
+    assign clk = aclk;
+    assign resetn = aresetn;
+
+	wire [31:0] inst_vaddr;
 	wire [31:0] instr;
 	wire [3:0] memwrite;
-    wire [31:0] aluout, writedata, readdata;
+    wire [31:0] data_vaddr, writedata, readdata;
 
     // debug wires
     wire data_sram_enM;
@@ -36,18 +82,17 @@ module mycpu_top(
     wire [31:0] resultW;
 
     mips mips(
+        // [inputs]
         .clk(~clk),
         .rst(~resetn),
-        //instr
-        // .inst_en(inst_en),
-        .pcF(pc),                    //pcF
-        .instrF(instr),              //instrF
-        //data
-        // .data_en(data_en),
-        .memwriteEN(memwrite),
-        .aluoutM(aluout),
-        .writedataM(writedata),
+        .instrF(instr),
         .readdataM(readdata),
+        // [outputs]
+        .pcF(inst_vaddr),
+        .memwriteEN(memwrite),
+        .aluoutM(data_vaddr),
+        .writedataM(writedata),
+        //      debug
         .data_sram_enM(data_sram_enM),
         .pcW(pcW),
         .regwriteW(regwriteW),
@@ -56,21 +101,22 @@ module mycpu_top(
     );
 
     // 地址转换
-    wire [31:0] true_pc;
-    wire [31:0] true_dataAddr;
+    wire [31:0] inst_paddr;
+    wire [31:0] data_paddr;
 
-    mmu mmu(pc,true_pc,aluout,true_dataAddr);
+    mmu mmu(inst_vaddr,inst_paddr,data_vaddr,data_paddr);
 
     assign inst_sram_en = 1'b1;     //如果有inst_en，就用inst_en
     assign inst_sram_wen = 4'b0;
-    assign inst_sram_addr = true_pc;
+    assign inst_sram_addr = inst_paddr;
     assign inst_sram_wdata = 32'b0;
     assign instr = inst_sram_rdata;
 
     assign data_sram_en = data_sram_enM;     //如果有data_en，就用data_en
     // 读入时，就算是只读半字，也需要读入整个word（即memwrite的四位都为0），然后再根据类型选择要读的有哪些部分
+    // TODO: 在axi总线中不再是这样的了
     assign data_sram_wen = memwrite;
-    assign data_sram_addr = true_dataAddr;
+    assign data_sram_addr = data_paddr;
     assign data_sram_wdata = writedata;
     assign readdata = data_sram_rdata;
 
@@ -79,9 +125,113 @@ module mycpu_top(
     assign debug_wb_rf_wnum = writeregW;
     assign debug_wb_rf_wdata = resultW;
 
-    //ascii
+    // ascii
     instdec instdec(
         .instr(instr)
+    );
+
+    // 目前什么也不做，只是DUMMY的cache
+    cache dummyCache(
+        .clk(clk), .rst(rst),
+        .cpu_inst_req     (cpu_inst_req  ),
+        .cpu_inst_wr      (cpu_inst_wr   ),
+        .cpu_inst_addr    (cpu_inst_paddr ),
+        .cpu_inst_size    (cpu_inst_size ),
+        .cpu_inst_wdata   (cpu_inst_wdata),
+        .cpu_inst_rdata   (cpu_inst_rdata),
+        .cpu_inst_addr_ok (cpu_inst_addr_ok),
+        .cpu_inst_data_ok (cpu_inst_data_ok),
+
+        .cpu_data_req     (ram_data_req  ),
+        .cpu_data_wr      (ram_data_wr   ),
+        .cpu_data_addr    (ram_data_addr ),
+        .cpu_data_wdata   (ram_data_wdata),
+        .cpu_data_size    (ram_data_size ),
+        .cpu_data_rdata   (ram_data_rdata),
+        .cpu_data_addr_ok (ram_data_addr_ok),
+        .cpu_data_data_ok (ram_data_data_ok),
+
+        .cache_inst_req     (cache_inst_req  ),
+        .cache_inst_wr      (cache_inst_wr   ),
+        .cache_inst_addr    (cache_inst_addr ),
+        .cache_inst_size    (cache_inst_size ),
+        .cache_inst_wdata   (cache_inst_wdata),
+        .cache_inst_rdata   (cache_inst_rdata),
+        .cache_inst_addr_ok (cache_inst_addr_ok),
+        .cache_inst_data_ok (cache_inst_data_ok),
+
+        .cache_data_req     (cache_data_req  ),
+        .cache_data_wr      (cache_data_wr   ),
+        .cache_data_addr    (cache_data_addr ),
+        .cache_data_wdata   (cache_data_wdata),
+        .cache_data_size    (cache_data_size ),
+        .cache_data_rdata   (cache_data_rdata),
+        .cache_data_addr_ok (cache_data_addr_ok),
+        .cache_data_data_ok (cache_data_data_ok)
+    );
+
+
+    cpu_axi_interface cpu_axi_interface(
+        .clk(clk),      .resetn(~rst),
+
+        .inst_req       (cache_inst_req  ),
+        .inst_wr        (cache_inst_wr   ),
+        .inst_size      (cache_inst_size ),
+        .inst_addr      (cache_inst_addr ),
+        .inst_wdata     (cache_inst_wdata),
+        .inst_rdata     (cache_inst_rdata),
+        .inst_addr_ok   (cache_inst_addr_ok),
+        .inst_data_ok   (cache_inst_data_ok),
+
+        .data_req       (data_req  ),
+        .data_wr        (data_wr   ),
+        .data_size      (data_size ),
+        .data_addr      (data_addr ),
+        .data_wdata     (data_wdata ),
+        .data_rdata     (data_rdata),
+        .data_addr_ok   (data_addr_ok),
+        .data_data_ok   (data_data_ok),
+
+        .arid(arid),
+        .araddr(araddr),
+        .arlen(arlen),
+        .arsize(arsize),
+        .arburst(arburst),
+        .arlock(arlock),
+        .arcache(arcache),
+        .arprot(arprot),
+        .arvalid(arvalid),
+        .arready(arready),
+
+        .rid(rid),
+        .rdata(rdata),
+        .rresp(rresp),
+        .rlast(rlast),
+        .rvalid(rvalid),
+        .rready(rready),
+
+        .awid(awid),
+        .awaddr(awaddr),
+        .awlen(awlen),
+        .awsize(awsize),
+        .awburst(awburst),
+        .awlock(awlock),
+        .awcache(awcache),
+        .awprot(awprot),
+        .awvalid(awvalid),
+        .awready(awready),
+
+        .wid(wid),
+        .wdata(wdata),
+        .wstrb(wstrb),
+        .wlast(wlast),
+        .wvalid(wvalid),
+        .wready(wready),
+
+        .bid(bid),
+        .bresp(bresp),
+        .bvalid(bvalid),
+        .bready(bready)
     );
 
 endmodule
