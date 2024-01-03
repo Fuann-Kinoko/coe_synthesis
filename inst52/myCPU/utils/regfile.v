@@ -32,12 +32,12 @@ module regfile(
 	reg [31:0] rf[31:0];
 
 	// TODO: 不知道上板行不行
-	integer i;
-	initial begin
-		for(i=0;i<32;i=i+1) begin
-			rf[i] <= 0;
-		end
-	end
+	// integer i;
+	// initial begin
+	// 	for(i=0;i<32;i=i+1) begin
+	// 		rf[i] <= 0;
+	// 	end
+	// end
 
 	always @(negedge clk) begin
 		if(we3) begin

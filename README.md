@@ -30,6 +30,12 @@
 
 `SOC`部分
 - [x] 跑通前64
-- [ ] 跑通65~89
+- [x] 跑通65~89
+
+`Cache`部分
+- [ ] 换成类SRAM-AXI接口
+- [ ] 建立dummy cache模块
+- [ ] 实现普通write through cache
+- [ ] write back cache
 
 ...
