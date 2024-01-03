@@ -215,8 +215,36 @@ module datapath(
     flopenrc r12E(clk,rst,~stallE,flushE,pcD,pcE);
     flopenrc #(8) exceptionD2E(clk,rst,~stallE,flushE,{checkExceptionD[7],ex_bpD,ex_sysD,ex_eretD,ex_riD,3'b000},checkExceptionE);
 	// 前推
-	mux3 forwardaemux(srcaE,result_filterdW,aluoutM,forwardaE,srca2E);
-	mux3 forwardbemux(srcbE,result_filterdW,aluoutM,forwardbE,srcb2E);
+	// forwardE =10，M阶段的要推过去
+	// forwardE =01，W阶段的要推过去
+	// 如果是M阶段，且cp0toregM为1，那么说明是从cp0_dataM推的，否则是aluoutM推的
+	// E阶段在ALU计算前，可能会使用rs/rt的数据，那么前面指令若要写入rs/rt，就需要前推
+
+	wire [31:0] srca1_5E, srcb1_5E;
+	wire [2:0] forwardaSelectE, forwardbSelectE;
+	wire forwardaSelect2E, forwardbSelect2E;
+	assign forwardaSelectE =
+		(forwardaE == 2'b10) ? (
+			(cp0ToRegM) ? 3'b100 	// cp0toregM
+			: 3'b010  				// aluoutM
+		) : ((forwardaE == 2'b01) ? (
+			3'b001 					// result_filteredW
+		) : 3'b000);					// none
+	assign forwardbSelectE =
+		(forwardbE == 2'b10) ? (
+			(cp0ToRegM) ? 3'b100 	// cp0toregM
+			: 3'b010  				// aluoutM
+		) : ((forwardbE == 2'b01) ? (
+			3'b001 					// result_filteredW
+		) : 3'b000);					// none
+	assign forwardaSelect2E = (forwardaE == 2'b01 & cp0ToRegW) ? 1'b1 : 1'b0;
+	assign forwardbSelect2E = (forwardbE == 2'b01 & cp0ToRegW) ? 1'b1 : 1'b0;
+	mux4 forwardaemux(srcaE,result_filterdW,aluoutM,cp0_dataM,forwardaSelectE,srca1_5E);
+	mux4 forwardbemux(srcbE,result_filterdW,aluoutM,cp0_dataM,forwardbSelectE,srcb1_5E);
+	mux2 forwardae2mux(srca1_5E, cp0_dataW, forwardaSelect2E, srca2E);
+	mux2 forwardbe2mux(srcb1_5E, cp0_dataW, forwardbSelect2E, srcb2E);
+	// mux3 forwardaemux(srcaE,result_filterdW,aluoutM,forwardaE,srca2E);
+	// mux3 forwardbemux(srcbE,result_filterdW,aluoutM,forwardbE,srcb2E);
     mux2 forwardHIEmux(HIE,HI2M,forwardHIE,HI2E);
     mux2 forwardLOEmux(LOE,LO2M,forwardLOE,LO2E);
     mux2 forwardCP0Emux(cp0_dataE,srcbM,forwardCP0E,cp0_data2E);
@@ -503,7 +531,7 @@ module datapath(
     // [WriteBack] 判断写回寄存器堆的是：从ALU出来的结果（可能被BAL、JAL或JALR覆盖） or 从数据存储器读取的data or HI/LO寄存器的数据 or CP0寄存器的数据
 	// mux2 mux_regwriteData(aluoutW,readdataW,memtoregW,resultW);
     // mux3 mux_regwriteData(aluoutW,readdataW,hilooutW,{hilotoregW,memtoregW},resultW);
-    mux4 mux_regwriteData(aluoutW,readdataW,hilooutW,cp0_dataW,{cp0ToRegW,hilotoregW,memtoregW},resultW);
+	mux4 mux_regwriteData(aluoutW,readdataW,hilooutW,cp0_dataW,{cp0ToRegW,hilotoregW,memtoregW},resultW);
 
 	// [WriteBack] 对于从内存中读出的数据，如果是Load指令（尤其是LH,LB），需要进行数据选择以及扩展
 	// 传出来的result_load_filterd即是LW/LH/lB最终的写回数据
