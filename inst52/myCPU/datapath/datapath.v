@@ -264,7 +264,7 @@ module datapath(
     floprc r12M(clk,rst,flushM,cp0_data2E,cp0_dataM);
     floprc r14M(clk,rst,flushM,cp0_countE,cp0_countM);
     floprc r15M(clk,rst,flushM,cp0_compareE,cp0_compareM);
-    floprc r16M(clk,rst,flushM,cp0_statusE,cp0_causeM);
+    floprc r16M(clk,rst,flushM,cp0_statusE,cp0_statusM);
     floprc r17M(clk,rst,flushM,cp0_causeE,cp0_causeM);
     floprc r18M(clk,rst,flushM,cp0_epcE,cp0_epcM);
     floprc r19M(clk,rst,flushM,cp0_configE,cp0_configM);
