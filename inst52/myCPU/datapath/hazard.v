@@ -106,7 +106,7 @@ module hazard(
 
 	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE;
 	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE;
-	assign flushE = lwstallD | branchstallD | jrstall_READ;
+	assign flushE = lwstallD | branchstallD | jrstall_READ | (except_typeM!=32'd0);
     assign stallE = stall_divE;
 
     assign flushF = (except_typeM!=32'd0);
