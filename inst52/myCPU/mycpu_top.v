@@ -138,7 +138,7 @@ module mycpu_top(
     wire [31:0] ram_inst_rdata;
     wire ram_inst_addr_ok, ram_inst_data_ok;
     i_sram2sramlike i_sram2sramlike(
-        .clk(clk), .rst(rst),
+        .clk(clk), .rst(~resetn),
         .inst_sram_en(inst_sram_en),
         .inst_sram_addr(inst_sram_addr),
         .inst_sram_rdata(inst_sram_rdata),
@@ -165,7 +165,7 @@ module mycpu_top(
     wire [31:0] ram_data_rdata;
     wire ram_data_addr_ok, ram_data_data_ok;
     d_sram2sramlike d_sram2sramlike(
-        .clk(clk), .rst(rst),
+        .clk(clk), .rst(~resetn),
         .data_sram_en(data_sram_en),
         .data_sram_addr(data_sram_addr),
         .data_sram_rdata(data_sram_rdata),
@@ -188,9 +188,18 @@ module mycpu_top(
         .instr(instr)
     );
 
+    // cache 与 cpu_axi_interface之间的“线”
+    wire cache_inst_req,cache_inst_wr;
+    wire [1:0] cache_inst_size;
+    wire [31:0] cache_inst_addr,cache_inst_wdata,cache_inst_rdata;
+    wire cache_inst_addr_ok,cache_inst_data_ok;
+    wire cache_data_req,cache_data_wr;
+    wire [1:0] cache_data_size;
+    wire [31:0] cache_data_addr,cache_data_wdata,cache_data_rdata;
+    wire cache_data_addr_ok,cache_data_data_ok;
     // 目前什么也不做，只是DUMMY的cache
     cache dummyCache(
-        .clk(clk), .rst(rst),
+        .clk(clk), .rst(resetn),
         .cpu_inst_req     (ram_inst_req  ),
         .cpu_inst_wr      (ram_inst_wr   ),
         .cpu_inst_addr    (ram_inst_paddr ),
@@ -230,7 +239,7 @@ module mycpu_top(
 
 
     cpu_axi_interface cpu_axi_interface(
-        .clk(clk),      .resetn(~rst),
+        .clk(clk),      .resetn(~resetn),
 
         .inst_req       (cache_inst_req  ),
         .inst_wr        (cache_inst_wr   ),
