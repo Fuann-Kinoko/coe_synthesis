@@ -7,6 +7,8 @@ module mips(
 	output [31:0] pcF,
 	output [3:0] memwriteEN,
 	output [31:0] aluoutM,writedataM,
+    input d_stall,i_stall,
+    output longest_stall,
 	//debug
 	output data_sram_enM,
     output [31:0] pcW,
@@ -35,6 +37,7 @@ module mips(
     wire cp0ToRegE,cp0ToRegM,cp0ToRegW;
     wire branchE,branchM,jumpE,jumpM,jalM,jrM,jalrE,jalrM;
 	wire ex_bpD, ex_sysD, ex_riD;
+    wire stallM,stallW;
 
 	controller c(
 		.clk(clk), .rst(rst),
@@ -72,7 +75,7 @@ module mips(
         .jalrE(jalrE),
 		//[mem stage]
 		//				==input==
-		.flushM(flushM),
+		.flushM(flushM),            .stallM(stallM),
 		//				==output=
 		.memtoregM(memtoregM),		.memwriteE(memwriteE),
         .regToHilo_hiM(regToHilo_hiM),
@@ -89,7 +92,7 @@ module mips(
 		.data_sram_enM(data_sram_enM),
 		//[writeBack stage]
 		//				==input==
-		.flushW(flushW),
+		.flushW(flushW),            .stallW(stallW),
 		//				==output=
 		.memtoregW(memtoregW),		.regwriteW(regwriteW),
         .hilotoregW(hilotoregW),    .cp0ToRegW(cp0ToRegW)
@@ -97,6 +100,8 @@ module mips(
 
 	datapath dp(
 		.clk(clk),	.rst(rst),
+        .d_stall(d_stall), .longest_stall(longest_stall),
+        .i_stall(i_stall),
 		//[fetch stage]
 		//				==input==
 		.instrF(instrF),
@@ -147,7 +152,7 @@ module mips(
 		//				==output=
 		.aluoutM(aluoutM),			.writedataExtendedM(writedataM),
 		.memwrite_filterdM(memwriteEN),
-		.flushM(flushM),
+		.flushM(flushM),            .stallM(stallM),
 		//[writeBack stage]
 		//				==input==
 		.memtoregW(memtoregW), 		.regwriteW(regwriteW),
@@ -155,7 +160,7 @@ module mips(
 		//				==output=
 		.pcW(pcW),                  .writeregW(writeregW),
         .result_filterdW(resultW),
-		.flushW(flushW)
+		.flushW(flushW),            .stallW(stallW)
 	);
 
 endmodule
