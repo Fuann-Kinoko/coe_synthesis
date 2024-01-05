@@ -24,6 +24,7 @@ module hazard(
     input stall_divE,
     input cp0ToRegE,
     input [4:0] readcp0AddrE,
+	input div_readyE,
 	output [1:0] forwardaE,forwardbE,
 	output flushE,
     output forwardHIE,forwardLOE,
@@ -106,12 +107,12 @@ module hazard(
 
 	// [汇总后产生的stall信号]
 
-	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | i_stall;
-	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | i_stall;
-	assign flushE = lwstallD | branchstallD | jrstall_READ | (except_typeM!=32'd0);
-    assign stallE = stall_divE | d_stall | i_stall;
-    assign stallM = stall_divE | d_stall | i_stall;
-    assign stallW = stall_divE | d_stall | i_stall;
+	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | (i_stall && !div_readyE);
+	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | (i_stall && !div_readyE);
+	assign flushE = (lwstallD | branchstallD | jrstall_READ | (except_typeM!=32'd0)) && !d_stall;
+    assign stallE = stall_divE | d_stall | (i_stall && !div_readyE);
+    assign stallM = stall_divE | d_stall | (i_stall && !div_readyE);
+    assign stallW = stall_divE | d_stall | (i_stall && !div_readyE);
     assign longest_stall = stallD | stallF | stallE | stallM | stallW;
 
     assign flushF = (except_typeM!=32'd0);

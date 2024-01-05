@@ -61,6 +61,9 @@ always @(posedge clk)begin
     else if(inst_data_ok) begin
         inst_rdata_save <= inst_rdata;
     end
+    else begin
+        inst_rdata_save <= 32'd0;
+    end
 end
 
 assign inst_req = inst_sram_en & ~addr_rcv & ~do_finish;

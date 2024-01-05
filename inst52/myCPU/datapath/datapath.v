@@ -29,6 +29,7 @@ module datapath(
     input cp0ToRegE,
     input branchE,jumpE,jalrE,
 	output flushE,stallE,
+	output reg stall_divE,
 	//mem stage
 	input memtoregM,
 	input regwriteM,
@@ -94,8 +95,8 @@ module datapath(
 	wire [7:0] checkExceptionE;
     wire [31:0] cp0_dataE,cp0_data2E;
     wire forwardCP0E;
-    wire div_readyE;
-    reg start_divE,stall_divE;
+    reg div_readyE;
+    reg start_divE;
     wire ex_ovE;
     wire [31:0] cp0_countE,cp0_compareE,cp0_statusE,cp0_causeE,cp0_epcE,cp0_configE,cp0_pridE,cp0_badvaddrE;
     wire cp0_timer_intE;
@@ -355,6 +356,7 @@ module datapath(
         .stall_divE(stall_divE),
         .cp0ToRegE(cp0ToRegE),
         .readcp0AddrE(readcp0AddrE),
+		.div_readyE(div_readyE),
 		.forwardaE(forwardaE),
 		.forwardbE(forwardbE),
 		.flushE(flushE),
@@ -431,6 +433,7 @@ module datapath(
 	//			 newPCM选项,且如若有例外出现，则newPCM优先
 	wire [31:0] pc_jr = srca2D;
     assign pc_next_addr =
+						(~i_stall) 				  ? pc_next_addr :
 						(checkExceptionM != 8'd0) ? newPCM :
                         (jrD)                     ? pc_jr  :
                         pc_afterjumpD;
@@ -493,6 +496,10 @@ module datapath(
     // 			 除法完成需要36个周期，因此在除法完成前，如若没有强行中断除法运算的特殊情况发生，
 	//			 流水线必须stall
     // 			 以下是一个简单的状态机，针对的是进行除法运算
+	wire div_ready_tempE;
+	always @(negedge clk) begin
+		div_readyE <= div_ready_tempE;
+	end
     always @(*)begin
         case({mdToHiloE,mulOrdivE})
             2'b10:begin
@@ -502,7 +509,7 @@ module datapath(
             default: begin start_divE = 1'b0; stall_divE = 1'b0; end
         endcase
     end
-    div div(clk,rst,mdIsSignE,srca2E,srcb3E,start_divE,flushE,{divResult_hiE,divResult_loE},div_readyE);
+    div div(clk,rst,mdIsSignE,srca2E,srcb3E,start_divE,flushE,{divResult_hiE,divResult_loE},div_ready_tempE);
 
     // [Memory] 写hilo_reg
     hilo_reg hilo(clk,rst,hilowriteM,HI2M,LO2M,HID,LOD);
