@@ -10,6 +10,7 @@ module mips(
     input d_stall,i_stall,
     output longest_stall,
 	output div_stall,
+	output hasException,
 	//debug
 	output data_sram_enM,
     output [31:0] pcW,
@@ -155,6 +156,7 @@ module mips(
 		.aluoutM(aluoutM),			.writedataExtendedM(writedataM),
 		.memwrite_filterdM(memwriteEN),
 		.flushM(flushM),            .stallM(stallM),
+		.hasExceptionM(hasException),
 		//[writeBack stage]
 		//				==input==
 		.memtoregW(memtoregW), 		.regwriteW(regwriteW),

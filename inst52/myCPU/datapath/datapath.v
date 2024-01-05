@@ -45,6 +45,7 @@ module datapath(
 	output [31:0] aluoutM,writedataExtendedM,
 	output [3:0] memwrite_filterdM,
 	output flushM,stallM,
+	output hasExceptionM,
 	//writeback stage
 	input memtoregW,
 	input regwriteW,
@@ -534,6 +535,7 @@ module datapath(
 
 
     // [Memory] 得到当前（优先级最高）的例外类型
+	assign hasExceptionM = (checkExceptionM != 8'd0) ? 1'b1 : 1'b0;
     exception_type exception_type(rst,checkExceptionM,cp0_statusM,cp0_causeM,except_typeM);
     // [Memory] 决定 写入cp0的错误地址 是指令地址pcM 还是数据地址 aluoutM(注: 这里指令地址错误的优先级高于数据地址错误)
     mux2 mux_badAddr(aluoutM,pcM,checkExceptionM[7],badAddrM);
