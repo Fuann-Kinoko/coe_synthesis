@@ -65,8 +65,8 @@ module mycpu_top(
     wire [31:0] data_sram_wdata;
     wire [31:0] data_sram_rdata;
 
-    wire clk, resetn;
-    assign clk = aclk;
+    // wire clk, resetn;
+    // assign clk = aclk;
     assign resetn = aresetn;
 
 	wire [31:0] inst_vaddr;
@@ -84,8 +84,8 @@ module mycpu_top(
     wire d_stall,i_stall,longest_stall;//TODO longest_stall则需要由mips输出
     mips mips(
         // [inputs]
-        .clk(~clk),
-        .rst(~resetn),
+        .clk(~aclk),
+        .rst(~aresetn),
         .instrF(instr),
         .readdataM(readdata),
         // [outputs]
@@ -125,7 +125,7 @@ module mycpu_top(
     assign readdata = data_sram_rdata;
 
     assign debug_wb_pc = pcW;
-    assign debug_wb_rf_wen = {4{regwriteW}};
+    assign debug_wb_rf_wen =(i_stall | d_stall)?4'b0000:{4{regwriteW}};
     assign debug_wb_rf_wnum = writeregW;
     assign debug_wb_rf_wdata = resultW;
 
@@ -138,7 +138,7 @@ module mycpu_top(
     wire [31:0] ram_inst_rdata;
     wire ram_inst_addr_ok, ram_inst_data_ok;
     i_sram2sramlike i_sram2sramlike(
-        .clk(clk), .rst(~resetn),
+        .clk(aclk), .rst(~resetn),
         .inst_sram_en(inst_sram_en),
         .inst_sram_addr(inst_sram_addr),
         .inst_sram_rdata(inst_sram_rdata),
@@ -165,7 +165,7 @@ module mycpu_top(
     wire [31:0] ram_data_rdata;
     wire ram_data_addr_ok, ram_data_data_ok;
     d_sram2sramlike d_sram2sramlike(
-        .clk(clk), .rst(~resetn),
+        .clk(aclk), .rst(~resetn),
         .data_sram_en(data_sram_en),
         .data_sram_addr(data_sram_addr),
         .data_sram_rdata(data_sram_rdata),
@@ -199,10 +199,10 @@ module mycpu_top(
     wire cache_data_addr_ok,cache_data_data_ok;
     // 目前什么也不做，只是DUMMY的cache
     cache dummyCache(
-        .clk(clk), .rst(resetn),
+        .clk(aclk), .rst(aresetn),
         .cpu_inst_req     (ram_inst_req  ),
         .cpu_inst_wr      (ram_inst_wr   ),
-        .cpu_inst_addr    (ram_inst_paddr ),
+        .cpu_inst_addr    (ram_inst_addr ),
         .cpu_inst_size    (ram_inst_size ),
         .cpu_inst_wdata   (ram_inst_wdata),
         .cpu_inst_rdata   (ram_inst_rdata),
@@ -239,7 +239,7 @@ module mycpu_top(
 
 
     cpu_axi_interface cpu_axi_interface(
-        .clk(clk),      .resetn(~resetn),
+        .clk(aclk),      .resetn(aresetn),
 
         .inst_req       (cache_inst_req  ),
         .inst_wr        (cache_inst_wr   ),
