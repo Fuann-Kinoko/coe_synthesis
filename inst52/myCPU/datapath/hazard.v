@@ -1,8 +1,6 @@
 `timescale 1ns / 1ps
 
 module hazard(
-    input d_stall,i_stall,
-    output longest_stall,
 	//fetch stage
 	output stallF,
 	output flushF,
@@ -40,12 +38,12 @@ module hazard(
     input [4:0] writecp0AddrM,
     input [31:0] except_typeM,cp0_epcM,
     output reg [31:0] newPCM,
-	output flushM,stallM,
+	output flushM,
 
 	//write back stage
 	input [4:0] writeregW,
 	input regwriteW,
-	output flushW,stallW
+	output flushW
 );
 
 	wire lwstallD,branchstallD,jrstall_WRITE;
@@ -106,13 +104,10 @@ module hazard(
 
 	// [汇总后产生的stall信号]
 
-	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | i_stall;
-	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | i_stall;
+	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE;
+	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE;
 	assign flushE = lwstallD | branchstallD | jrstall_READ | (except_typeM!=32'd0);
-    assign stallE = stall_divE | d_stall | i_stall;
-    assign stallM = stall_divE | d_stall | i_stall;
-    assign stallW = stall_divE | d_stall | i_stall;
-    assign longest_stall = stallF | stallD | stallE | stallM |stallW;
+    assign stallE = stall_divE;
 
     assign flushF = (except_typeM!=32'd0);
 	assign flushD = (except_typeM!=32'd0);

@@ -31,7 +31,7 @@ module controller(
 
 
 	//mem stage
-	input flushM,stallM,
+	input flushM,
 	output memtoregM,regwriteM,hilowriteM,regToHilo_hiM,regToHilo_loM,mdToHiloM,hilotoregM,hilosrcM,isWritecp0M,cp0ToRegM,branchM,jumpM,jalM,jrM,jalrM,
 	output [3:0] memReadWidthM,
 	output memLoadIsSignM,
@@ -39,7 +39,7 @@ module controller(
 	output data_sram_enM,
 
 	//write back stage
-	input flushW,stallW,
+	input flushW,
 	output memtoregW,regwriteW,hilotoregW,cp0ToRegW
 );
 
@@ -78,8 +78,8 @@ module controller(
 	);
 
 	// [execute -> mem]
-	flopenrc #(26) regM(
-		clk,rst,~stallM,flushM,
+	floprc #(26) regM(
+		clk,rst,flushM,
 		{memtoregE,memReadWidthE,//5bit
 		regwriteE,regToHilo_hiE,regToHilo_loE,mdToHiloE,hilowriteE,hilotoregE,//11bit
 		hilosrcE,memLoadIsSignE,isWritecp0E,writecp0AddrE,cp0ToRegE,branchE,jumpE,jalE,jrE,jalrE,data_sram_enE},//26bit
@@ -90,8 +90,8 @@ module controller(
 	);
 
 	// [mem -> writeBack]
-	flopenrc #(4) regW(
-		clk,rst,~stallW,flushW,
+	floprc #(4) regW(
+		clk,rst,flushW,
 		{memtoregM,regwriteM,hilotoregM,cp0ToRegM},
 		{memtoregW,regwriteW,hilotoregW,cp0ToRegW}
 	);
