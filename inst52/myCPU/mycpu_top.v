@@ -81,7 +81,9 @@ module mycpu_top(
     wire [4:0] writeregW;
     wire [31:0] resultW;
 
+
     wire d_stall,i_stall,longest_stall;//TODO longest_stall则需要由mips输出
+    wire div_stall;
     mips mips(
         // [inputs]
         .clk(~aclk),
@@ -96,6 +98,7 @@ module mycpu_top(
         .d_stall(d_stall),
         .i_stall(i_stall),
         .longest_stall(longest_stall),
+        .div_stall(div_stall),
         //      debug
         .data_sram_enM(data_sram_enM),
         .pcW(pcW),
@@ -125,7 +128,7 @@ module mycpu_top(
     assign readdata = data_sram_rdata;
 
     assign debug_wb_pc = pcW;
-    assign debug_wb_rf_wen = (i_stall | d_stall)?4'b0000:{4{regwriteW}};
+    assign debug_wb_rf_wen = (i_stall | d_stall | div_stall) ? 4'b0000 : {4{regwriteW}};
     assign debug_wb_rf_wnum = writeregW;
     assign debug_wb_rf_wdata = resultW;
 

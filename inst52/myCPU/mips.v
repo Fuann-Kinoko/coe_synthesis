@@ -9,6 +9,7 @@ module mips(
 	output [31:0] aluoutM,writedataM,
     input d_stall,i_stall,
     output longest_stall,
+	output div_stall,
 	//debug
 	output data_sram_enM,
     output [31:0] pcW,
@@ -132,6 +133,7 @@ module mips(
         .readcp0AddrE(readcp0AddrE),.cp0ToRegE(cp0ToRegE),
         .branchE(branchE),          .jumpE(jumpE),
         .jalrE(jalrE),
+		.stall_divE(div_stall),
 
 		//				==output=
 		.flushE(flushE),            .stallE(stallE),
