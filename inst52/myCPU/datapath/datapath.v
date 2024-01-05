@@ -3,7 +3,8 @@
 `timescale 1ns / 1ps
 
 module datapath(
-	input clk,rst,
+	input clk,rst,d_stall,i_stall,
+    output longest_stall,
 	//fetch stage
 	input [31:0] instrF,
 	output [31:0] pcF,
@@ -42,7 +43,7 @@ module datapath(
     input branchM,jumpM,jalM,jrM,jalrM,
 	output [31:0] aluoutM,writedataExtendedM,
 	output [3:0] memwrite_filterdM,
-	output flushM,
+	output flushM,stallM,
 	//writeback stage
 	input memtoregW,
 	input regwriteW,
@@ -51,7 +52,7 @@ module datapath(
     output [31:0] pcW,
     output [4:0] writeregW,
     output [31:0] result_filterdW,
-	output flushW
+	output flushW,stallW
 );
 
     //测试数据，暂时用于代表乘法结果与除法结果
@@ -251,28 +252,28 @@ module datapath(
 
 	// [execute -> mem]
 	// 暂存
-	floprc r1M(clk,rst,flushM,srcb2E,writedataM);
-	floprc r2M(clk,rst,flushM,aluoutE,aluoutM);
-	floprc #(5) r3M(clk,rst,flushM,writeregE,writeregM);
-    floprc r5M(clk,rst,flushM,srca2E,srcaM);
-    floprc r6M(clk,rst,flushM,HI2E,HIM);
-    floprc r7M(clk,rst,flushM,LO2E,LOM);
-    floprc r8M(clk,rst,flushM,mdResult_hiE,mdResult_hiM);
-    floprc r9M(clk,rst,flushM,mdResult_loE,mdResult_loM);
-	floprc #(4) r10M(clk,rst,flushM,memwriteE,memwriteM);
-    floprc r11M(clk,rst,flushM,srcb3E,srcbM);
-    floprc r12M(clk,rst,flushM,cp0_data2E,cp0_dataM);
-    floprc r14M(clk,rst,flushM,cp0_countE,cp0_countM);
-    floprc r15M(clk,rst,flushM,cp0_compareE,cp0_compareM);
-    floprc r16M(clk,rst,flushM,cp0_statusE,cp0_statusM);
-    floprc r17M(clk,rst,flushM,cp0_causeE,cp0_causeM);
-    floprc r18M(clk,rst,flushM,cp0_epcE,cp0_epcM);
-    floprc r19M(clk,rst,flushM,cp0_configE,cp0_configM);
-    floprc r20M(clk,rst,flushM,cp0_badvaddrE,cp0_badvaddrM);
-    floprc #(1) r21M(clk,rst,flushM,cp0_timer_intE,cp0_timer_intM);
-    floprc r22M(clk,rst,flushM,pcE,pcM);
-    floprc #(1) r23M(clk,rst,flushM,isInDelayslotE,isInDelayslotM);
-    floprc #(6) exceptionE2M(clk,rst,flushM,{checkExceptionE[7:3],ex_ovE},checkExceptionM[7:2]);
+	flopenrc r1M(clk,rst,~stallM,flushM,srcb2E,writedataM);
+	flopenrc r2M(clk,rst,~stallM,flushM,aluoutE,aluoutM);
+	flopenrc #(5) r3M(clk,rst,~stallM,flushM,writeregE,writeregM);
+    flopenrc r5M(clk,rst,~stallM,flushM,srca2E,srcaM);
+    flopenrc r6M(clk,rst,~stallM,flushM,HI2E,HIM);
+    flopenrc r7M(clk,rst,~stallM,flushM,LO2E,LOM);
+    flopenrc r8M(clk,rst,~stallM,flushM,mdResult_hiE,mdResult_hiM);
+    flopenrc r9M(clk,rst,~stallM,flushM,mdResult_loE,mdResult_loM);
+	flopenrc #(4) r10M(clk,rst,~stallM,flushM,memwriteE,memwriteM);
+    flopenrc r11M(clk,rst,~stallM,flushM,srcb3E,srcbM);
+    flopenrc r12M(clk,rst,~stallM,flushM,cp0_data2E,cp0_dataM);
+    flopenrc r14M(clk,rst,~stallM,flushM,cp0_countE,cp0_countM);
+    flopenrc r15M(clk,rst,~stallM,flushM,cp0_compareE,cp0_compareM);
+    flopenrc r16M(clk,rst,~stallM,flushM,cp0_statusE,cp0_statusM);
+    flopenrc r17M(clk,rst,~stallM,flushM,cp0_causeE,cp0_causeM);
+    flopenrc r18M(clk,rst,~stallM,flushM,cp0_epcE,cp0_epcM);
+    flopenrc r19M(clk,rst,~stallM,flushM,cp0_configE,cp0_configM);
+    flopenrc r20M(clk,rst,~stallM,flushM,cp0_badvaddrE,cp0_badvaddrM);
+    flopenrc #(1) r21M(clk,rst,~stallM,flushM,cp0_timer_intE,cp0_timer_intM);
+    flopenrc r22M(clk,rst,~stallM,flushM,pcE,pcM);
+    flopenrc #(1) r23M(clk,rst,~stallM,flushM,isInDelayslotE,isInDelayslotM);
+    flopenrc #(6) exceptionE2M(clk,rst,~stallM,flushM,{checkExceptionE[7:3],ex_ovE},checkExceptionM[7:2]);
 
 
 	// flopr r1M(clk,rst,srcb2E,writedataM);
@@ -304,14 +305,14 @@ module datapath(
 
 	// [mem -> writeBack]
 	// 暂存
-	floprc r1W(clk,rst,flushW,aluoutM,aluoutW);
-	floprc r2W(clk,rst,flushW,readdataM,readdataW);
-	floprc #(5) r3W(clk,rst,flushW,writeregM,writeregW);
-    floprc r4W(clk,rst,flushW,hilooutM,hilooutW);
-	floprc #(4) r5W(clk,rst,flushW,memReadWidthM,memReadWidthW);
-	floprc #(1) r6W(clk,rst,flushW,memLoadIsSignM,memLoadIsSignW);
-    floprc r7W(clk,rst,flushW,cp0_dataM,cp0_dataW);
-	floprc r8W(clk,rst,flushW,pcM,pcW);
+	flopenrc r1W(clk,rst,~stallW,flushW,aluoutM,aluoutW);
+	flopenrc r2W(clk,rst,~stallW,flushW,readdataM,readdataW);
+	flopenrc #(5) r3W(clk,rst,~stallW,flushW,writeregM,writeregW);
+    flopenrc r4W(clk,rst,~stallW,flushW,hilooutM,hilooutW);
+	flopenrc #(4) r5W(clk,rst,~stallW,flushW,memReadWidthM,memReadWidthW);
+	flopenrc #(1) r6W(clk,rst,~stallW,flushW,memLoadIsSignM,memLoadIsSignW);
+    flopenrc r7W(clk,rst,~stallW,flushW,cp0_dataM,cp0_dataW);
+	flopenrc r8W(clk,rst,~stallW,flushW,pcM,pcW);
 
 	// flopr r1W(clk,rst,aluoutM,aluoutW);
 	// flopr r2W(clk,rst,readdataM,readdataW);
@@ -327,6 +328,9 @@ module datapath(
 	// 			hazard模块
 	// =============================
 	hazard h(
+        .d_stall(d_stall),
+        .i_stall(i_stall),
+        .longest_stall(longest_stall),
 		//fetch stage
 		.stallF(stallF),
 		.flushF(flushF),
@@ -372,10 +376,12 @@ module datapath(
         .cp0_epcM(cp0_epcM),
         .newPCM(newPCM),
 		.flushM(flushM),
+        .stallM(stallM),
 		//write back stage
 		.writeregW(writeregW),
 		.regwriteW(regwriteW),
-		.flushW(flushW)
+		.flushW(flushW),
+        .stallW(stallW)
 	);
 
 
