@@ -312,7 +312,8 @@ module datapath(
 	flopenrc #(4) r5W(clk,rst,~stallW,flushW,memReadWidthM,memReadWidthW);
 	flopenrc #(1) r6W(clk,rst,~stallW,flushW,memLoadIsSignM,memLoadIsSignW);
     flopenrc r7W(clk,rst,~stallW,flushW,cp0_dataM,cp0_dataW);
-	flopenrc r8W(clk,rst,~stallW,flushW,pcM,pcW);
+	// flopenrc r8W(clk,rst,~stallW,flushW,pcM,pcW);
+    flopenrc r8W(clk,rst,regwriteM,flushW,pcM,pcW);//寄存器写使能时才更新pcW
 
 	// flopr r1W(clk,rst,aluoutM,aluoutW);
 	// flopr r2W(clk,rst,readdataM,readdataW);
