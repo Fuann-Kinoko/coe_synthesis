@@ -113,7 +113,7 @@ module hazard(
     assign stallE = stall_divE | d_stall | (i_stall && !div_readyE);
     assign stallM = stall_divE | d_stall | (i_stall && !div_readyE);
     assign stallW = stall_divE | d_stall | (i_stall && !div_readyE);
-    assign longest_stall = stallD | stallF | stallE | stallM | stallW;
+    assign longest_stall = (stallD | stallF | stallE | stallM | stallW) & (!(branchstallD & !lwstallD & !i_stall & !d_stall & memtoregM & !jrstall_READ & !jrstall_WRITE & !stall_divE));
 
     assign flushF = (except_typeM!=32'd0);
 	assign flushD = (except_typeM!=32'd0);
