@@ -53,23 +53,23 @@ always @(posedge clk)begin
     end
 end
 
-reg [31:0] data_rdata_save; //缓存读取的数据，保证在新的数据被成功读取之前，维持上一次被读取的数据不变
+reg [31:0] inst_rdata_save; //缓存读取的数据，保证在新的数据被成功读取之前，维持上一次被读取的数据不变
 always @(posedge clk)begin
     if(rst) begin
-        data_rdata_save <= 32'd0;
+        inst_rdata_save <= 32'd0;
     end
     else if(inst_data_ok) begin
-        data_rdata_save <= inst_rdata;
+        inst_rdata_save <= inst_rdata;
     end
 end
 
 assign inst_req = inst_sram_en & ~addr_rcv & ~do_finish;
-assign inst_wr = inst_sram_wen;
+assign inst_wr = inst_sram_en & inst_sram_wen;
 assign inst_size = 2'b10;
 assign inst_addr = inst_sram_addr;
 assign inst_wdata = inst_sram_wdata;
 
 //sram
-assign inst_sram_rdata = data_rdata_save;
+assign inst_sram_rdata = inst_rdata_save;
 assign i_stall = inst_sram_en & ~do_finish;// 这里同样是处于流水线stall情况的考虑，这时候inst_sram_en由于流水线stall而一直为1，但实际上本访存已经完成，所以不再需要要求流水线stall
 endmodule
