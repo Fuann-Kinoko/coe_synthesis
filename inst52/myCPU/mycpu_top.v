@@ -125,7 +125,7 @@ module mycpu_top(
     assign readdata = data_sram_rdata;
 
     assign debug_wb_pc = pcW;
-    assign debug_wb_rf_wen = {4{regwriteW}};
+    assign debug_wb_rf_wen =(i_stall | d_stall)?4'b0000:{4{regwriteW}};
     assign debug_wb_rf_wnum = writeregW;
     assign debug_wb_rf_wdata = resultW;
 
