@@ -5,6 +5,7 @@
 module datapath(
 	input clk,rst,d_stall,i_stall,
     output longest_stall,
+	output reg gap_stall,
 	//fetch stage
 	input [31:0] instrF,
 	output [31:0] pcF,
@@ -329,9 +330,19 @@ module datapath(
 	// =============================
 	// 			hazard模块
 	// =============================
+	// 每次出现跳转周期时：
+	// - 如果在M阶段的指令非lw/sw类，那么所有阶段跳转。一直等到i_stall结束，真的取到了pcF的对应instr，再在下个时钟沿更新阶段
+	// - 如果在M阶段的指令为lw/sw类。那么所有阶段跳转。一直等到d_stall结束，完成了访存/写存操作。但现在不能更新阶段，因为还没有取新的pcF的对应instr。一个周期后触发i_stall，直到i_stall结束，我们才能说“好了，进入下一个阶段”
+	// 而在情况2时，d_stall和i_stall的产生之间相隔了一个周期，为了不让阶段改变，这里有一个gap_stall，来填补空缺
+	// 注：因为内外时钟取反，所以这里的i_stall和d_stall都是在下降沿改变
+	always @(negedge clk) begin
+		gap_stall <= d_stall;
+	end
+
 	hazard h(
         .d_stall(d_stall),
         .i_stall(i_stall),
+		.gap_stall(gap_stall),
         .longest_stall(longest_stall),
 		//fetch stage
 		.stallF(stallF),
@@ -401,7 +412,7 @@ module datapath(
     //            -> 更新PC
     // ====================================
 
-	reg [31:0] pc_next_addr;
+	wire [31:0] pc_next_addr;
 
 	// [Fetch] PC 模块
 	flopenr_pc pcreg(clk,rst,~stallF,flushF,pc_next_addr,newPCM,pcF);
@@ -436,19 +447,24 @@ module datapath(
 	assign pc_jr = srca2D;
 
 	wire pc_next_addr_en;
-	assign pc_next_addr_en = i_stall | (jumpD & d_stall);
-	always@(posedge clk) begin
-		if(pc_next_addr_en) begin
-			pc_next_addr <= (checkExceptionM != 8'd0) ? newPCM :
-							(jrD) 					  ? pc_jr  :
-							pc_afterjumpD;
-		end
-	end
-    // assign pc_next_addr =
-	// 					(checkExceptionM != 8'd0) 		 ? newPCM :
-	// 					(~i_stall && ~(jumpD & d_stall)) ? pc_next_addr :
-    //                     (jrD)                     		 ? pc_jr  :
-    //                     pc_afterjumpD;
+	// assign pc_next_addr_en = i_stall | (jumpD & d_stall) | (~d_stall & ~i_stall & jrD);
+	// always@(posedge clk) begin
+	// 	if(pc_next_addr_en) begin
+	// 		pc_next_addr <= (checkExceptionM != 8'd0) ? newPCM :
+	// 						(jrD) 					  ? pc_jr  :
+	// 						pc_afterjumpD;
+	// 	end
+	// end
+    assign pc_next_addr =
+		// (pc_next_addr_en) ? (
+			(checkExceptionM != 8'd0) ? newPCM :
+			(jrD) 					  ? pc_jr  :
+			pc_afterjumpD;
+		// ) : pc_next_addr;
+						// (checkExceptionM != 8'd0) 		 ? newPCM :
+						// (~i_stall && ~(jumpD & d_stall)) ? pc_next_addr :
+                        // (jrD)                     		 ? pc_jr  :
+                        // pc_afterjumpD;
 	// assign pc_next_addr = (jrD) ? pc_jr : pc_afterjumpD;
 
 

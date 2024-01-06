@@ -47,11 +47,17 @@ module maindec(
                     `SLT,       `SLTU,
                     `AND,       `NOR,
                     `OR,        `XOR,
-                    `SLLV,      `SLL,
+                    `SLLV,      //`SLL,
                     `SRAV,      `SRA,
                     `SRLV,      `SRL,
                     `JALR,      `MFHI,
                     `MFLO:      regwrite = `SET_ON;
+                    `SLL: begin
+                        if(rt==5'd0 && rd==5'd0)
+                            regwrite = `SET_OFF;
+                        else
+                            regwrite = `SET_ON;
+                    end // NOP和SLL的op和funct一样，NOP的regwrite为0
                     default:    regwrite = `SET_OFF;
                 endcase
             end

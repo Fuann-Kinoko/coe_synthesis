@@ -2,6 +2,7 @@
 
 module hazard(
     input d_stall,i_stall,
+	input gap_stall,
     output longest_stall,
 	//fetch stage
 	output stallF,
@@ -107,15 +108,17 @@ module hazard(
 
 	// [汇总后产生的stall信号]
 
-	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | (i_stall && !div_readyE);
-	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | (i_stall && !div_readyE);
-	assign flushE = (lwstallD | branchstallD | jrstall_READ | (except_typeM!=32'd0)) && !(d_stall & except_typeM==32'd0);
-  assign stallE = stall_divE | d_stall | (i_stall && !div_readyE);
-  assign stallM = stall_divE | d_stall | (i_stall && !div_readyE);
-  assign stallW = stall_divE | d_stall | (i_stall && !div_readyE);
-  assign longest_stall = (stallD | stallF | stallE | stallM | stallW) & (!(branchstallD & !lwstallD & !i_stall & !d_stall & memtoregM & !jrstall_READ & !jrstall_WRITE & !stall_divE));
 
-  assign flushF = (except_typeM!=32'd0);
+	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | gap_stall | (i_stall && !div_readyE);
+	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | gap_stall | (i_stall && !div_readyE);
+	assign flushE = (lwstallD | branchstallD | jrstall_READ | (except_typeM!=32'd0)) && !gap_stall && !(d_stall & except_typeM==32'd0);
+	assign stallE = stall_divE | d_stall | gap_stall | (i_stall && !div_readyE);
+	assign stallM = stall_divE | d_stall | gap_stall | (i_stall && !div_readyE);
+	assign stallW = stall_divE | d_stall | gap_stall | (i_stall && !div_readyE);
+	// 注意，longest_stall并不包含gap_stall，原因详见datapath.v中hazard模块上方的内容
+	assign longest_stall = (lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | (i_stall && !div_readyE)) & (!(branchstallD & !lwstallD & !i_stall & !d_stall & memtoregM & !jrstall_READ & !jrstall_WRITE & !stall_divE));
+
+	assign flushF = (except_typeM!=32'd0);
 	assign flushD = (except_typeM!=32'd0);
 	assign flushM = (except_typeM!=32'd0);
 	assign flushW = (except_typeM!=32'd0);

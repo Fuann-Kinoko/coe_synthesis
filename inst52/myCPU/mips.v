@@ -9,6 +9,7 @@ module mips(
 	output [31:0] aluoutM,writedataM,
     input d_stall,i_stall,
     output longest_stall,
+	output gap_stall,
 	output div_stall,
 	output hasException,
 	//debug
@@ -105,6 +106,7 @@ module mips(
 		.clk(clk),	.rst(rst),
         .d_stall(d_stall), .longest_stall(longest_stall),
         .i_stall(i_stall),
+		.gap_stall(gap_stall),
 		//[fetch stage]
 		//				==input==
 		.instrF(instrF),

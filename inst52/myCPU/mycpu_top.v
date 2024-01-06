@@ -83,6 +83,7 @@ module mycpu_top(
 
 
     wire d_stall,i_stall,longest_stall;//TODO longest_stall则需要由mips输出
+    wire gap_stall;
     wire div_stall;
     wire hasException;
     mips mips(
@@ -99,6 +100,7 @@ module mycpu_top(
         .d_stall(d_stall),
         .i_stall(i_stall),
         .longest_stall(longest_stall),
+		.gap_stall(gap_stall),
         .div_stall(div_stall),
         .hasException(hasException),
         //      debug
@@ -130,7 +132,7 @@ module mycpu_top(
     assign readdata = data_sram_rdata;
 
     assign debug_wb_pc = pcW;
-    assign debug_wb_rf_wen = ((i_stall | d_stall | div_stall) & !hasException) ? 4'b0000 : {4{regwriteW}};
+    assign debug_wb_rf_wen = ((i_stall | d_stall | div_stall | gap_stall) & !hasException) ? 4'b0000 : {4{regwriteW}};
     assign debug_wb_rf_wnum = writeregW;
     assign debug_wb_rf_wdata = resultW;
 

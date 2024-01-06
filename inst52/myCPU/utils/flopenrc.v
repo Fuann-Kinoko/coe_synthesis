@@ -9,9 +9,14 @@ module flopenrc #(parameter WIDTH = 32)(
 	always @(posedge clk,posedge rst) begin
 		if(rst)
 			q <= 0;
-		else if (clear)
-			q <= 0;
-		else if (en)
-			q <= d;
+		else if (en) begin
+			if(clear)
+				q <= 0;
+			else
+				q <= d;
+		end
+		// 	q <= d;
+		// else if (clear)
+		// 	q <= 0;
 	end
 endmodule
