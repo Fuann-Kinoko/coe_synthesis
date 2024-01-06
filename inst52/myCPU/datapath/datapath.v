@@ -401,7 +401,7 @@ module datapath(
     //            -> 更新PC
     // ====================================
 
-	wire [31:0] pc_next_addr;
+	reg [31:0] pc_next_addr;
 
 	// [Fetch] PC 模块
 	flopenr_pc pcreg(clk,rst,~stallF,flushF,pc_next_addr,newPCM,pcF);
@@ -432,12 +432,23 @@ module datapath(
 	// [Decode] 【特殊情况】如果是JR或者JALR，那么无条件跳转的值为寄存器rs中的值
     //			 由于现在可能会出现例外情况，因此pc_next_addr的选择又多了一项例外返回地址
 	//			 newPCM选项,且如若有例外出现，则newPCM优先
-	wire [31:0] pc_jr = srca2D;
-    assign pc_next_addr =
-						(checkExceptionM != 8'd0) ? newPCM :
-						(~i_stall) 				  ? pc_next_addr :
-                        (jrD)                     ? pc_jr  :
-                        pc_afterjumpD;
+	wire [31:0] pc_jr;
+	assign pc_jr = srca2D;
+
+	wire pc_next_addr_en;
+	assign pc_next_addr_en = i_stall | (jumpD & d_stall);
+	always@(posedge clk) begin
+		if(pc_next_addr_en) begin
+			pc_next_addr <= (checkExceptionM != 8'd0) ? newPCM :
+							(jrD) 					  ? pc_jr  :
+							pc_afterjumpD;
+		end
+	end
+    // assign pc_next_addr =
+	// 					(checkExceptionM != 8'd0) 		 ? newPCM :
+	// 					(~i_stall && ~(jumpD & d_stall)) ? pc_next_addr :
+    //                     (jrD)                     		 ? pc_jr  :
+    //                     pc_afterjumpD;
 	// assign pc_next_addr = (jrD) ? pc_jr : pc_afterjumpD;
 
 
