@@ -434,8 +434,8 @@ module datapath(
 	//			 newPCM选项,且如若有例外出现，则newPCM优先
 	wire [31:0] pc_jr = srca2D;
     assign pc_next_addr =
-						(~i_stall) 				  ? pc_next_addr :
 						(checkExceptionM != 8'd0) ? newPCM :
+						(~i_stall) 				  ? pc_next_addr :
                         (jrD)                     ? pc_jr  :
                         pc_afterjumpD;
 	// assign pc_next_addr = (jrD) ? pc_jr : pc_afterjumpD;

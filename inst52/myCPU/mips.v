@@ -23,6 +23,7 @@ module mips(
 	wire [4:0] rsD,rtD,rdD;
 	wire regdstE,alusrcE,branchD,jalD,jrD,pcsrcD,memtoregE,memtoregM,memtoregW;
 	wire balE,jalE,jrE,regwriteE,regwriteM;
+	wire jumpD;
 	wire [4:0] alucontrolE;
 	wire flushE,flushM,flushW,validBranchConditionD;
     wire regToHilo_hiE,regToHilo_loE,mdToHiloE,mulOrdivE,mdIsSignE;
@@ -39,7 +40,7 @@ module mips(
     wire cp0ToRegE,cp0ToRegM,cp0ToRegW;
     wire branchE,branchM,jumpE,jumpM,jalM,jrM,jalrE,jalrM;
 	wire ex_bpD, ex_sysD, ex_riD;
-    wire stallM,stallW;
+    wire stallE,stallM,stallW;
 
 	controller c(
 		.clk(clk), .rst(rst),

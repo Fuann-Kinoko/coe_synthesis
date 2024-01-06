@@ -56,6 +56,7 @@ module controller(
 	wire [3:0] memReadWidthE;
 	wire memLoadIsSignE;
 	wire hilowriteE;
+	wire data_sram_enE;
 
 	// 用不到的，就继续传
 

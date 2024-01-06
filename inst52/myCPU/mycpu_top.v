@@ -65,8 +65,8 @@ module mycpu_top(
     wire [31:0] data_sram_wdata;
     wire [31:0] data_sram_rdata;
 
-    // wire clk, resetn;
-    // assign clk = aclk;
+    wire clk, resetn;
+    assign clk = aclk;
     assign resetn = aresetn;
 
 	wire [31:0] inst_vaddr;
