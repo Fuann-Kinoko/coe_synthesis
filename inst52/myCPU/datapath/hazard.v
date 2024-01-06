@@ -110,12 +110,12 @@ module hazard(
 	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | (i_stall && !div_readyE);
 	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | (i_stall && !div_readyE);
 	assign flushE = (lwstallD | branchstallD | jrstall_READ | (except_typeM!=32'd0)) && !(d_stall & except_typeM==32'd0);
-    assign stallE = stall_divE | d_stall | (i_stall && !div_readyE);
-    assign stallM = stall_divE | d_stall | (i_stall && !div_readyE);
-    assign stallW = stall_divE | d_stall | (i_stall && !div_readyE);
-    assign longest_stall = (stallD | stallF | stallE | stallM | stallW) & (!(branchstallD & !lwstallD & !i_stall & !d_stall & memtoregM & !jrstall_READ & !jrstall_WRITE & !stall_divE));
+  assign stallE = stall_divE | d_stall | (i_stall && !div_readyE);
+  assign stallM = stall_divE | d_stall | (i_stall && !div_readyE);
+  assign stallW = stall_divE | d_stall | (i_stall && !div_readyE);
+  assign longest_stall = (stallD | stallF | stallE | stallM | stallW) & (!(branchstallD & !lwstallD & !i_stall & !d_stall & memtoregM & !jrstall_READ & !jrstall_WRITE & !stall_divE));
 
-    assign flushF = (except_typeM!=32'd0);
+  assign flushF = (except_typeM!=32'd0);
 	assign flushD = (except_typeM!=32'd0);
 	assign flushM = (except_typeM!=32'd0);
 	assign flushW = (except_typeM!=32'd0);
