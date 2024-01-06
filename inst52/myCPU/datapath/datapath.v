@@ -45,6 +45,7 @@ module datapath(
 	output [31:0] aluoutM,writedataExtendedM,
 	output [3:0] memwrite_filterdM,
 	output flushM,stallM,
+	output hasExceptionM,
 	//writeback stage
 	input memtoregW,
 	input regwriteW,
@@ -435,6 +436,7 @@ module datapath(
     assign pc_next_addr =
 						(~i_stall) 				  ? pc_next_addr :
 						(checkExceptionM != 8'd0) ? newPCM :
+						(~i_stall) 				  ? pc_next_addr :
                         (jrD)                     ? pc_jr  :
                         pc_afterjumpD;
 	// assign pc_next_addr = (jrD) ? pc_jr : pc_afterjumpD;
@@ -501,18 +503,23 @@ module datapath(
 		div_readyE <= div_ready_tempE;
 	end
     always @(*)begin
-        case({mdToHiloE,mulOrdivE})
-            2'b10:begin
-                if     (div_readyE == 1'b0) begin start_divE = 1'b1; stall_divE = 1'b1; end
-                else if(div_readyE == 1'b1) begin start_divE = 1'b0; stall_divE = 1'b0; end
-            end
-            default: begin start_divE = 1'b0; stall_divE = 1'b0; end
-        endcase
+		case({mdToHiloE,mulOrdivE})
+			2'b10:begin
+				if     (div_readyE == 1'b0) begin start_divE = 1'b1; stall_divE = 1'b1; end
+				else if(div_readyE == 1'b1) begin start_divE = 1'b0; stall_divE = 1'b0; end
+			end
+			default: begin start_divE = 1'b0; stall_divE = 1'b0; end
+		endcase
     end
     div div(clk,rst,mdIsSignE,srca2E,srcb3E,start_divE,flushE,{divResult_hiE,divResult_loE},div_ready_tempE);
 
     // [Memory] 写hilo_reg
-    hilo_reg hilo(clk,rst,hilowriteM,HI2M,LO2M,HID,LOD);
+	// 若i指令有异常，i+1是div。当i达到M，i+1达到E，这时i+1在M发现了异常，设置了跳转。而除法开始做运算，进行了stall
+	// 似乎根据trace更好的做法是检测到异常就压根不做下一条的除法
+	// 但是这里用一个还算折中的实现，即如果是以上提到的情况，那么除法的结果不写回给HILO
+	wire hilowrite_safeM;
+	assign hilowrite_safeM = (pcF == 32'hBFC00380) ? 1'b0 : hilowriteM;
+    hilo_reg hilo(clk,rst,hilowrite_safeM,HI2M,LO2M,HID,LOD);
     // [Memory] 决定 write rd是 HI,还是LO
     mux2 mux_rddst(LO2M,HI2M,hilosrcM,hilooutM);
     // [memory] 如果需要与内存读写数据，需要标记数据读写类型与读写地址是否正确
@@ -534,6 +541,7 @@ module datapath(
 
 
     // [Memory] 得到当前（优先级最高）的例外类型
+	assign hasExceptionM = (checkExceptionM != 8'd0) ? 1'b1 : 1'b0;
     exception_type exception_type(rst,checkExceptionM,cp0_statusM,cp0_causeM,except_typeM);
     // [Memory] 决定 写入cp0的错误地址 是指令地址pcM 还是数据地址 aluoutM(注: 这里指令地址错误的优先级高于数据地址错误)
     mux2 mux_badAddr(aluoutM,pcM,checkExceptionM[7],badAddrM);
