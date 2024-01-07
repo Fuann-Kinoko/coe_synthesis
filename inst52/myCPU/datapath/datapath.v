@@ -31,7 +31,7 @@ module datapath(
     input branchE,jumpE,jalrE,
 	output flushE,stallE,
 	output reg div_stall_extend,
-	output reg div_readyE,
+	output div_readyE,
 	//mem stage
 	input memtoregM,
 	input regwriteM,
@@ -536,10 +536,6 @@ module datapath(
     // 			 除法完成需要36个周期，因此在除法完成前，如若没有强行中断除法运算的特殊情况发生，
 	//			 流水线必须stall
     // 			 以下是一个简单的状态机，针对的是进行除法运算
-	wire div_ready_tempE;
-	always @(negedge clk) begin
-		div_readyE <= div_ready_tempE;
-	end
     always @(negedge clk) begin
         div_stall_extend <= stall_divE;
     end
@@ -554,7 +550,7 @@ module datapath(
 			default: begin start_divE = 1'b0; stall_divE = 1'b0; end
 		endcase
     end
-    div div(clk,rst,mdIsSignE,srca2E,srcb3E,stallE,start_divE,flushE,{divResult_hiE,divResult_loE},div_ready_tempE);
+    div div(clk,rst,mdIsSignE,srca2E,srcb3E,stallE,start_divE,flushE,{divResult_hiE,divResult_loE},div_readyE);
 
     // [Memory] 写hilo_reg
 	// 若i指令有异常，i+1是div。当i达到M，i+1达到E，这时i+1在M发现了异常，设置了跳转。而除法开始做运算，进行了stall

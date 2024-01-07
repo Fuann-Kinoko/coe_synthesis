@@ -19,7 +19,10 @@ module d_sram2sramlike(
     output wire [31:0] data_wdata,
     input wire [31:0] data_rdata,
     input wire data_addr_ok,
-    input wire data_data_ok
+    input wire data_data_ok,
+
+    // ugly patches
+    input gap_stall
 );
 // 以下代码参照视频示例实现
 reg addr_rcv; // 地址握手成功
@@ -44,7 +47,7 @@ always @(posedge clk)begin
     else if(data_data_ok) begin
         do_finish <= 1'b1;
     end
-    else if(~longest_stall) begin //在没有流水线暂停的设计中，这次访存结束后，便可紧接着着手处理下一次访存请求，这是没有问题的……
+    else if(~longest_stall && ~gap_stall) begin //在没有流水线暂停的设计中，这次访存结束后，便可紧接着着手处理下一次访存请求，这是没有问题的……
                                   /* 然而由于流水线会因为各种原因stall，便会有本次访存明明已经完成，但由于data_sram_en仍然为1，致使重复发送请求的情况产生
                                   所以在每一次访存结束后，需要检测当前流水线是否还处于stall状态：
                                   如果是，则继续标记本次数据访存已完成，而在后续时钟周期不会再有新的访存请求产生（因为这时候流水线已经被stall），便不再发送请求，所以这时候置data_req信号为0；

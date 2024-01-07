@@ -213,7 +213,8 @@ module mycpu_top(
         .data_size    (ram_data_size ),
         .data_rdata   (ram_data_rdata),
         .data_addr_ok (ram_data_addr_ok),
-        .data_data_ok (ram_data_data_ok)
+        .data_data_ok (ram_data_data_ok),
+        .gap_stall(gap_stall)
     );
     // ascii
     instdec instdec(
