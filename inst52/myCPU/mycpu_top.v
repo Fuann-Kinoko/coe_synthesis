@@ -65,8 +65,8 @@ module mycpu_top(
     wire [31:0] data_sram_wdata;
     wire [31:0] data_sram_rdata;
 
-    // wire clk, resetn;
-    // assign clk = aclk;
+    wire clk, resetn;
+    assign clk = aclk;
     assign resetn = aresetn;
 
 	wire [31:0] inst_vaddr;
@@ -84,7 +84,8 @@ module mycpu_top(
 
     wire d_stall,i_stall,longest_stall;//TODO longest_stall则需要由mips输出
     wire gap_stall;
-    wire div_stall;
+    wire div_stall_extend;
+    wire div_ready;
     wire hasException;
     mips mips(
         // [inputs]
@@ -101,14 +102,16 @@ module mycpu_top(
         .i_stall(i_stall),
         .longest_stall(longest_stall),
 		.gap_stall(gap_stall),
-        .div_stall(div_stall),
+        .div_stall_extend(div_stall_extend),
+        .div_ready(div_ready),
         .hasException(hasException),
         //      debug
         .data_sram_enM(data_sram_enM),
         .pcW(pcW),
         .regwriteW(regwriteW),
         .writeregW(writeregW),
-        .resultW(resultW)
+        .resultW(resultW),
+        .rstCompleteMessageW(rstCompleteMessageW)
     );
 
     // 地址转换
@@ -132,7 +135,29 @@ module mycpu_top(
     assign readdata = data_sram_rdata;
 
     assign debug_wb_pc = pcW;
-    assign debug_wb_rf_wen = ((i_stall | d_stall | div_stall | gap_stall) & !hasException) ? 4'b0000 : {4{regwriteW}};
+    // reg debug_wb_rf_wen;
+
+
+    reg rstCompleteMessageW_Reverse;
+    wire rstCompleteMessage_Filtered;
+    always @(negedge aclk) begin
+        rstCompleteMessageW_Reverse <= rstCompleteMessageW;
+    end
+    assign rstCompleteMessage_Filtered = rstCompleteMessageW ^ rstCompleteMessageW_Reverse;
+    // always @(negedge aclk) begin
+    //     if(rstCompleteMessage_Filtered)
+    //         debug_wb_rf_wen <= 4'b1111;
+    //     else if((i_stall | d_stall | div_stall | gap_stall) & !hasException)
+    //         debug_wb_rf_wen <= 4'd0;
+    //     else
+    //         debug_wb_rf_wen <= {4{regwriteW}};
+    // end
+    wire [3:0] wen = (i_stall | div_stall_extend | gap_stall) ? 4'b0000 : {4{regwriteW}};
+    reg [3:0] wen_extend_half;
+    always @(posedge clk or negedge clk) begin
+        wen_extend_half <= wen;
+    end
+    assign debug_wb_rf_wen = wen_extend_half | rstCompleteMessage_Filtered;
     assign debug_wb_rf_wnum = writeregW;
     assign debug_wb_rf_wdata = resultW;
 

@@ -23,6 +23,7 @@ module hazard(
 	input memtoregE,
     input hilotoregE,hilosrcE,
     input stall_divE,
+	input div_stall_extend,
     input cp0ToRegE,
     input [4:0] readcp0AddrE,
 	input div_readyE,
@@ -109,14 +110,14 @@ module hazard(
 	// [汇总后产生的stall信号]
 
 
-	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | gap_stall | (i_stall && !div_readyE);
-	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | gap_stall | (i_stall && !div_readyE);
+	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | gap_stall | i_stall | div_stall_extend;
+	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | gap_stall | i_stall | div_stall_extend;
 	assign flushE = (lwstallD | branchstallD | jrstall_READ | (except_typeM!=32'd0)) && !gap_stall && !(d_stall & except_typeM==32'd0);
-	assign stallE = stall_divE | d_stall | gap_stall | (i_stall && !div_readyE);
-	assign stallM = stall_divE | d_stall | gap_stall | (i_stall && !div_readyE);
-	assign stallW = stall_divE | d_stall | gap_stall | (i_stall && !div_readyE);
+	assign stallE = stall_divE | d_stall | gap_stall | i_stall | div_stall_extend;
+	assign stallM = stall_divE | d_stall | gap_stall | i_stall | div_stall_extend;
+	assign stallW = stall_divE | d_stall | gap_stall | i_stall | div_stall_extend;
 	// 注意，longest_stall并不包含gap_stall，原因详见datapath.v中hazard模块上方的内容
-	assign longest_stall = (lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | (i_stall && !div_readyE)) & (!(branchstallD & !lwstallD & !i_stall & !d_stall & memtoregM & !jrstall_READ & !jrstall_WRITE & !stall_divE));
+	assign longest_stall = (branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | (i_stall && !div_readyE)) & (!(branchstallD & !lwstallD & !i_stall & !d_stall & memtoregM & !jrstall_READ & !jrstall_WRITE & !stall_divE));
 
 	assign flushF = (except_typeM!=32'd0);
 	assign flushD = (except_typeM!=32'd0);

@@ -40,6 +40,7 @@ module div(
 	input wire                    signed_div_i,
 	input wire[31:0]              opdata1_i,
 	input wire[31:0]		   				opdata2_i,
+	input wire stallE,
 	input wire                    start_i,
 	input wire                    annul_i,
 
@@ -128,7 +129,7 @@ module div(
 		  	`DivEnd:			begin               //DivEnd״̬
 				result_o <= {dividend[64:33], dividend[31:0]};
 				ready_o <= `DivResultReady;
-				if(start_i == `DivStop) begin
+				if(start_i == `DivStop && !stallE) begin // 加了一个!stallE，防止div在算完后，因为i_stall要取很久，div又重新开始了
 					state <= `DivFree;
 					ready_o <= `DivResultNotReady;
 					result_o <= {`ZeroWord,`ZeroWord};

@@ -30,7 +30,8 @@ module datapath(
     input cp0ToRegE,
     input branchE,jumpE,jalrE,
 	output flushE,stallE,
-	output reg stall_divE,
+	output reg div_stall_extend,
+	output reg div_readyE,
 	//mem stage
 	input memtoregM,
 	input regwriteM,
@@ -55,7 +56,8 @@ module datapath(
     output [31:0] pcW,
     output [4:0] writeregW,
     output [31:0] result_filterdW,
-	output flushW,stallW
+	output flushW,stallW,
+	output rstCompleteMessageW
 );
 
     //测试数据，暂时用于代表乘法结果与除法结果
@@ -66,6 +68,7 @@ module datapath(
 	wire [31:0] pc_plus4F;
 	wire [7:0] checkExceptionF;
 	wire flushF;
+	wire rstCompleteMessageF;
 
 	//decode stage
 	wire [31:0] pc_afterjumpD,pc_afterbranchD,pc_branch_offsetD;
@@ -80,6 +83,7 @@ module datapath(
     wire [31:0] pcD;
 	wire [7:0] checkExceptionD;
 	wire flushD;
+	wire rstCompleteMessageD;
 
 	//execute stage
 	wire [1:0] forwardaE,forwardbE;
@@ -93,11 +97,11 @@ module datapath(
     wire [31:0] HIE,HI2E,LOE,LO2E;
     wire forwardHIE,forwardLOE;
     wire [31:0] mdResult_hiE,mdResult_loE;
+	wire rstCompleteMessageE;
 
 	wire [7:0] checkExceptionE;
     wire [31:0] cp0_dataE,cp0_data2E;
     wire forwardCP0E;
-    reg div_readyE;
     reg start_divE;
     wire ex_ovE;
     wire [31:0] cp0_countE,cp0_compareE,cp0_statusE,cp0_causeE,cp0_epcE,cp0_configE,cp0_pridE,cp0_badvaddrE;
@@ -123,6 +127,7 @@ module datapath(
     wire [31:0] badAddrM;
     wire [31:0] newPCM;
 	wire [7:0] checkExceptionM;
+	wire rstCompleteMessageM;
 
 	//writeback stage
 	wire [31:0] aluoutW,readdataW,resultW,hilooutW;
@@ -145,6 +150,7 @@ module datapath(
 	flopenrc r2D(clk,rst,~stallD,flushD,instrF,instrD);
     flopenrc r4D(clk,rst,~stallD,flushD,pcF,pcD);
     flopenrc #(8) exceptionF2D(clk,rst,~stallD,flushD,{checkExceptionF[7],7'd0},checkExceptionD);
+	flopenr #(1) rstCompleteMessageF2D(clk,rst,~stallD,rstCompleteMessageF,rstCompleteMessageD);
 
 	// flopenr r1D(clk,rst,~stallD,pc_plus4F,pc_plus4D);
 	// flopenr r2D(clk,rst,~stallD,instrF,instrD);
@@ -218,6 +224,7 @@ module datapath(
     flopenrc r10E(clk,rst,~stallE,flushE,LOD,LOE);
     flopenrc r12E(clk,rst,~stallE,flushE,pcD,pcE);
     flopenrc #(8) exceptionD2E(clk,rst,~stallE,flushE,{checkExceptionD[7],ex_bpD,ex_sysD,ex_eretD,ex_riD,3'b000},checkExceptionE);
+	flopenr #(1) rstCompleteMessageD2E(clk,rst,~stallD,rstCompleteMessageD,rstCompleteMessageE);
 	// 前推
 	// forwardE =10，M阶段的要推过去
 	// forwardE =01，W阶段的要推过去
@@ -277,6 +284,7 @@ module datapath(
     flopenrc r22M(clk,rst,~stallM,flushM,pcE,pcM);
     flopenrc #(1) r23M(clk,rst,~stallM,flushM,isInDelayslotE,isInDelayslotM);
     flopenrc #(6) exceptionE2M(clk,rst,~stallM,flushM,{checkExceptionE[7:3],ex_ovE},checkExceptionM[7:2]);
+	flopenr #(1) rstCompleteMessageE2M(clk,rst,~stallD,rstCompleteMessageE,rstCompleteMessageM);
 
 
 	// flopr r1M(clk,rst,srcb2E,writedataM);
@@ -316,6 +324,7 @@ module datapath(
 	flopenrc #(1) r6W(clk,rst,~stallW,flushW,memLoadIsSignM,memLoadIsSignW);
     flopenrc r7W(clk,rst,~stallW,flushW,cp0_dataM,cp0_dataW);
 	flopenrc r8W(clk,rst,~stallW,flushW,pcM,pcW);
+	flopenr #(1) rstCompleteMessageM2W(clk,rst,~stallD,rstCompleteMessageM,rstCompleteMessageW);
 
 	// flopr r1W(clk,rst,aluoutM,aluoutW);
 	// flopr r2W(clk,rst,readdataM,readdataW);
@@ -338,6 +347,7 @@ module datapath(
 	always @(negedge clk) begin
 		gap_stall <= d_stall;
 	end
+
 
 	hazard h(
         .d_stall(d_stall),
@@ -366,6 +376,7 @@ module datapath(
         .hilotoregE(hilotoregE),
         .hilosrcE(hilosrcE),
         .stall_divE(stall_divE),
+        .div_stall_extend(div_stall_extend),
         .cp0ToRegE(cp0ToRegE),
         .readcp0AddrE(readcp0AddrE),
 		.div_readyE(div_readyE),
@@ -415,7 +426,7 @@ module datapath(
 	wire [31:0] pc_next_addr;
 
 	// [Fetch] PC 模块
-	flopenr_pc pcreg(clk,rst,~stallF,flushF,pc_next_addr,newPCM,pcF);
+	flopenr_pc pcreg(clk,rst,~stallF,flushF,pc_next_addr,newPCM,rstCompleteMessageF,pcF);
     // [fetch] 标记取指令的地址是否对齐，不对齐产生例外
     assign checkExceptionF = (pcF[1:0]==2'b00) ? 8'd0 : 8'b1000_0000;
 	// [Fetch] PC + 4
@@ -528,16 +539,21 @@ module datapath(
 	always @(negedge clk) begin
 		div_readyE <= div_ready_tempE;
 	end
+    always @(negedge clk) begin
+        div_stall_extend <= stall_divE;
+    end
+	reg stall_divE;
     always @(*)begin
 		case({mdToHiloE,mulOrdivE})
 			2'b10:begin
-				if     (div_readyE == 1'b0) begin start_divE = 1'b1; stall_divE = 1'b1; end
+				if (except_typeM != 32'd0) begin start_divE = 1'b0; stall_divE = 1'b0; end
+				else if(div_readyE == 1'b0) begin start_divE = 1'b1; stall_divE = 1'b1; end
 				else if(div_readyE == 1'b1) begin start_divE = 1'b0; stall_divE = 1'b0; end
 			end
 			default: begin start_divE = 1'b0; stall_divE = 1'b0; end
 		endcase
     end
-    div div(clk,rst,mdIsSignE,srca2E,srcb3E,start_divE,flushE,{divResult_hiE,divResult_loE},div_ready_tempE);
+    div div(clk,rst,mdIsSignE,srca2E,srcb3E,stallE,start_divE,flushE,{divResult_hiE,divResult_loE},div_ready_tempE);
 
     // [Memory] 写hilo_reg
 	// 若i指令有异常，i+1是div。当i达到M，i+1达到E，这时i+1在M发现了异常，设置了跳转。而除法开始做运算，进行了stall

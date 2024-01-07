@@ -10,8 +10,10 @@ module mips(
     input d_stall,i_stall,
     output longest_stall,
 	output gap_stall,
-	output div_stall,
+	output div_stall_extend,
+	output div_ready,
 	output hasException,
+	output rstCompleteMessageW,
 	//debug
 	output data_sram_enM,
     output [31:0] pcW,
@@ -137,10 +139,10 @@ module mips(
         .readcp0AddrE(readcp0AddrE),.cp0ToRegE(cp0ToRegE),
         .branchE(branchE),          .jumpE(jumpE),
         .jalrE(jalrE),
-		.stall_divE(div_stall),
 
 		//				==output=
 		.flushE(flushE),            .stallE(stallE),
+		.div_stall_extend(div_stall_extend),		.div_readyE(div_ready),
 		//[mem stage]
 		//				==input==
 		.memtoregM(memtoregM), 		.regwriteM(regwriteM),
@@ -167,7 +169,8 @@ module mips(
 		//				==output=
 		.pcW(pcW),                  .writeregW(writeregW),
         .result_filterdW(resultW),
-		.flushW(flushW),            .stallW(stallW)
+		.flushW(flushW),            .stallW(stallW),
+		.rstCompleteMessageW(rstCompleteMessageW)
 	);
 
 endmodule
