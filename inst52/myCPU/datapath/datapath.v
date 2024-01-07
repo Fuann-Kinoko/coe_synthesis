@@ -175,9 +175,10 @@ module datapath(
 	) : 3'b000;
 	mux4 forwardamux(srcaD,aluoutM,hilooutM,cp0_dataM,forwardaSelectD,srca2D);
 	mux4 forwardbmux(srcbD,aluoutM,hilooutM,cp0_dataM,forwardbSelectD,srcb2D);
-	mux2 forwardJR(srca2D,readdataM,jrstall_READ, srca3D);
-	assign srcb3D = srcb2D;
-	// 其实只有srca有可能是jr前推的结果，才会有srca3D，但为了整齐将srcb3D也写上了
+	// 额外forwardaD前推：二选一，如果是从mem读到的内容需要前推，那么就推readdataM
+	mux2 forwardJR(srca2D,readdataM,jrstall_READ | (forwardaD & memtoregM), srca3D);
+	mux2 forwardJR2(srcb2D,readdataM,jrstall_READ | (forwardbD & memtoregM), srcb3D);
+	// assign srcb3D = srcb2D;
 
 	// [decode]
 	assign opD = instrD[31:26];
@@ -455,7 +456,7 @@ module datapath(
     //			 由于现在可能会出现例外情况，因此pc_next_addr的选择又多了一项例外返回地址
 	//			 newPCM选项,且如若有例外出现，则newPCM优先
 	wire [31:0] pc_jr;
-	assign pc_jr = srca2D;
+	assign pc_jr = srca3D;
 
 	wire pc_next_addr_en;
 	// assign pc_next_addr_en = i_stall | (jumpD & d_stall) | (~d_stall & ~i_stall & jrD);
