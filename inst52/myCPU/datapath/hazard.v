@@ -110,8 +110,10 @@ module hazard(
 	// [汇总后产生的stall信号]
 
 
-	assign stallD = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | gap_stall | i_stall | div_stall_extend;
-	assign stallF = lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | gap_stall | i_stall | div_stall_extend;
+	// 例如：出现eret，所有如pcM,pcW,pcE都被flush掉。就pcD由于出现lwstallD而不flush掉，这不合理吧？
+	// 所以变成了 except_typemM == 32'd0 && ...
+	assign stallD = (except_typeM == 32'd0) && (lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | gap_stall | i_stall | div_stall_extend);
+	assign stallF = (except_typeM == 32'd0) && (lwstallD | branchstallD | jrstall_READ | jrstall_WRITE | stall_divE | d_stall | gap_stall | i_stall | div_stall_extend);
 	assign flushE = (lwstallD | branchstallD | jrstall_READ | (except_typeM!=32'd0)) && !gap_stall && !(d_stall & except_typeM==32'd0);
 	assign stallE = stall_divE | d_stall | gap_stall | i_stall | div_stall_extend;
 	assign stallM = stall_divE | d_stall | gap_stall | i_stall | div_stall_extend;
